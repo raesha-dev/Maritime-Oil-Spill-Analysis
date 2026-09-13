@@ -41,7 +41,9 @@ function Panel({ title, children, className = "", action }: { title: string; chi
   return <section className={`panel ${className}`}><header className="panel-head"><h2>{title}</h2>{action}</header>{children}</section>;
 }
 
-function MapWorkspace({ layers, toggle }: { layers: Record<string, boolean>; toggle: (key: string) => void }) {
+type LayerState = { observed: boolean; simulation: boolean; probability: boolean; tracks: boolean };
+
+function MapWorkspace({ layers, toggle }: { layers: LayerState; toggle: (key: keyof LayerState) => void }) {
   return <div className="map-wrap" aria-label="Bay of Bengal forensic map">
     <div className="map-toolbar"><button title="Zoom in"><ZoomIn /></button><button title="Zoom out"><ZoomOut /></button><button title="Map layers"><Layers3 /></button></div>
     <svg className="map" viewBox="0 0 1000 640" role="img" aria-label="Bay of Bengal map showing spill evidence, probability field and vessel tracks">
@@ -96,7 +98,9 @@ function Workstation() {
   const [clock, setClock] = useState("14:32:07");
   useEffect(() => { const tick = () => setClock(new Date().toISOString().slice(11, 19)); tick(); const id = window.setInterval(tick, 1000); return () => window.clearInterval(id); }, []);
   useEffect(() => { if (!playing) return; const id = window.setInterval(() => setFrame(v => (v + 1) % 4), 900); return () => window.clearInterval(id); }, [playing]);
-  const candidate = candidates[selected];
+  const candidate = candidates[selected] ?? candidates[0];
+  if (!candidate) return null;
+  const events: Array<[string, string, string, string]> = [["08 SEP 14:20","Vessel enters probable origin region","OBSERVED","obs"],["08 SEP 14:45","Estimated release window","INFERRED","inf"],["08 SEP 15:00","Hypothetical release","SIMULATED","sim"],["T+6H","Satellite revisit gap","GAP","gap"],["09 SEP 08:17","Sentinel-1 detects slick","OBSERVED","obs"],["09 SEP 08:30","Real vs simulated comparison","SYSTEM","sys"]];
   return <main className="workstation">
     <header className="topbar"><div className="title-block"><h1>MARITIME OIL-SPILL FORENSIC ANALYSIS</h1><p>Satellite intelligence for evidence-based vessel attribution</p></div><div className="workflow">{["DETECT", "TRACE", "ATTRIBUTE", "TEST", "INVESTIGATE"].map((x,i)=><span className={i===4?"active":"done"} key={x}>{x}{i<4&&<ChevronRight/>}</span>)}</div><div className="top-actions"><label className="search"><Search/><input aria-label="Search" placeholder="Search vessel, location, incident ID..."/></label><button className="icon-button" title="Notifications"><Bell/></button><div className="status"><span>UTC {clock}</span><b><i/>SYSTEM OPERATIONAL</b></div></div></header>
     <aside className="navrail">{nav.map(([Icon,label],i)=><button key={label} className={i===0?"selected":""} title={label}><Icon/><span>{label}</span></button>)}<div className="nav-spacer"/><button title="Help"><CircleHelp/><span>Help</span></button></aside>
@@ -105,7 +109,7 @@ function Workstation() {
     </section>
     <div className="workspace">
       <div className="main-column">
-        <MapWorkspace layers={layers} toggle={(key)=>setLayers(v=>({...v,[key]:!v[key as keyof typeof v]}))}/>
+        <MapWorkspace layers={layers} toggle={(key)=>setLayers(v=>({...v,[key]:!v[key]}))}/>
         <div className="lower-grid">
           <Panel title="VESSEL CANDIDATES" className="candidates" action={<button className="utility" onClick={()=>setNullState(v=>!v)}>{nullState?"SHOW RANKING":"NULL STATE"}</button>}>
             {nullState ? <div className="null-state"><AlertTriangle/><div><strong>NO SUFFICIENTLY CONSISTENT VESSEL IDENTIFIED</strong><p>Origin estimate may be unreliable — recommend re-examining detection and hindcast inputs.</p></div></div> : <><div className="table-head"><span>#</span><span>VESSEL / TYPE</span><span>PROX.</span><span>SCORE</span><span>AIS INTEGRITY</span></div>{candidates.map((c,i)=><button key={c.name} className={`candidate-row ${i===selected?"active":""}`} onClick={()=>setSelected(i)}><span>{i+1}</span><span><b>{c.name}</b><small>{c.type}</small></span><span>{c.proximity}</span><strong>{c.score.toFixed(2)}</strong><em className={c.tone}>{c.integrity}</em></button>)}</>}
@@ -130,7 +134,7 @@ function Workstation() {
           <ul className="evidence-list"><li className="pass">Passes through high-probability origin region</li><li className="pass">Speed profile is consistent with release window</li><li className="pass">Simulated slick closely matches observed evolution</li><li className="caution">AIS gap overlaps estimated release window</li><li className="info">Vessel context shown separately as supporting background</li></ul><div className="assessment"><strong>SYSTEM ASSESSMENT</strong><p>Strong physical consistency. Further investigation recommended.</p></div>
         </Panel>
         <Panel title="EVIDENCE CHAIN" className="timeline" action={<button className="mini-select">ALL EVENTS <ChevronDown/></button>}>
-          {[["08 SEP 14:20","Vessel enters probable origin region","OBSERVED","obs"],["08 SEP 14:45","Estimated release window","INFERRED","inf"],["08 SEP 15:00","Hypothetical release","SIMULATED","sim"],["T+6H","Satellite revisit gap","GAP","gap"],["09 SEP 08:17","Sentinel-1 detects slick","OBSERVED","obs"],["09 SEP 08:30","Real vs simulated comparison","SYSTEM","sys"]].map(([time,text,type,cls])=><div className={`event ${cls}`} key={time+text}><i/><time>{time}</time><span>{text}</span><b>{type}</b></div>)}
+          {events.map(([time,text,type,cls])=><div className={`event ${cls}`} key={time+text}><i/><time>{time}</time><span>{text}</span><b>{type}</b></div>)}
         </Panel>
       </aside>
     </div>
