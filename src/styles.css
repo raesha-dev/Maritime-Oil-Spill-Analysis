@@ -42,7 +42,7 @@ button { color: inherit; }
 button:focus-visible, input:focus-visible { outline: 1px solid var(--telemetry); outline-offset: 1px; }
 
 .workstation { height: 100vh; min-height: 720px; display: grid; grid-template-columns: 74px minmax(0,1fr); grid-template-rows: 54px 66px minmax(0,1fr) 30px; overflow: hidden; background: var(--background); }
-.topbar { grid-column: 1/-1; display: grid; grid-template-columns: 360px minmax(390px,1fr) 500px; align-items: center; border-bottom: 1px solid var(--line); background: var(--surface); padding: 0 14px 0 20px; }
+.topbar { position:relative; z-index:20; grid-column: 1/-1; display: grid; grid-template-columns: 360px minmax(390px,1fr) 500px; align-items: center; border-bottom: 1px solid var(--line); background: var(--surface); padding: 0 14px 0 20px; }
 .title-block h1 { margin: 0; font-size: 16px; letter-spacing: .02em; font-weight: 600; }
 .title-block p { margin: 2px 0 0; color: var(--telemetry); font-size: 10px; }
 .workflow { display:flex; align-items:center; justify-content:center; gap: 6px; font: 500 9px var(--font-mono); }
