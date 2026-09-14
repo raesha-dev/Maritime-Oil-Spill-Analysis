@@ -83,7 +83,9 @@ class OriginEstimate(StrictModel):
     release_window_start: datetime
     release_window_end: datetime
     probability_contours: list[list[Coordinate]]
-    model: Literal["deterministic-hindcast-adapter"]
+    model: str = Field(min_length=3, max_length=100)
+    is_fallback: bool = False
+    warnings: list[str] = Field(default_factory=list, max_length=10)
 
 
 class AISIntegrity(str, Enum):
@@ -225,6 +227,19 @@ class MessageCreate(StrictModel):
 class Message(MessageCreate):
     id: UUID
     created_at: datetime
+
+
+class DashboardSnapshot(StrictModel):
+    """The single read contract consumed by the dynamic analyst dashboard."""
+
+    incident: Incident
+    detection: Detection | None
+    hindcast: OriginEstimate | None
+    ranking: CandidateRanking | None
+    simulations: list[SimulationResult]
+    assessment: Assessment | None
+    evidence_events: list[EvidenceEvent]
+    updated_at: datetime
 
 
 class ApiEnvelope(StrictModel):

@@ -7,12 +7,17 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+project_root = Path(__file__).resolve().parents[2]
+backend_root = Path(__file__).resolve().parents[1]
+load_dotenv(project_root / ".env")
+load_dotenv(backend_root / ".env", override=True)
 
 
 @dataclass(frozen=True)
 class Settings:
-    database_path: str = os.getenv("SPILL_API_DATABASE_PATH", "spill-forensics.db")
+    database_path: str = os.getenv(
+        "SPILL_API_DATABASE_PATH", str(Path(__file__).resolve().parents[1] / "spill-forensics.db")
+    )
     allowed_origins: tuple[str, ...] = tuple(
         origin.strip()
         for origin in os.getenv(

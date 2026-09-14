@@ -26,6 +26,13 @@ CREATE TABLE IF NOT EXISTS simulations (
   payload TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS analysis_artifacts (
+  incident_id TEXT NOT NULL REFERENCES incidents(incident_id),
+  artifact_type TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (incident_id, artifact_type)
+);
 CREATE TABLE IF NOT EXISTS evidence_events (
   id TEXT PRIMARY KEY,
   incident_id TEXT NOT NULL REFERENCES incidents(incident_id),
@@ -75,3 +82,37 @@ class Store:
     @staticmethod
     def decode(payload: str) -> dict:
         return json.loads(payload)
+
+    def save_artifact(self, incident_id: str, artifact_type: str, payload: dict, updated_at: str) -> None:
+        with self.connection() as connection:
+            connection.execute(
+                """INSERT INTO analysis_artifacts(incident_id, artifact_type, payload, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(incident_id, artifact_type) DO UPDATE SET
+                  payload = excluded.payload, updated_at = excluded.updated_at""",
+                (incident_id, artifact_type, self.encode(payload), updated_at),
+            )
+
+    def get_artifact(self, incident_id: str, artifact_type: str) -> dict | None:
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT payload FROM analysis_artifacts WHERE incident_id = ? AND artifact_type = ?",
+                (incident_id, artifact_type),
+            ).fetchone()
+        return self.decode(row["payload"]) if row else None
+
+    def artifact_updated_at(self, incident_id: str, artifact_type: str) -> str | None:
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT updated_at FROM analysis_artifacts WHERE incident_id = ? AND artifact_type = ?",
+                (incident_id, artifact_type),
+            ).fetchone()
+        return row["updated_at"] if row else None
+
+    def list_simulations(self, incident_id: str) -> list[dict]:
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM simulations WHERE json_extract(payload, '$.incident_id') = ? ORDER BY created_at DESC",
+                (incident_id,),
+            ).fetchall()
+        return [self.decode(row["payload"]) for row in rows]

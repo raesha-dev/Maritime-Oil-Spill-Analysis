@@ -52,6 +52,10 @@ class DeterministicDriftAdapter:
             release_window_end=detection.acquired_at - timedelta(hours=max(1, hours - 4)),
             probability_contours=[contour],
             model="deterministic-hindcast-adapter",
+            is_fallback=True,
+            warnings=[
+                "Deterministic development fallback: this result is not an OpenDrift or scientific forecast."
+            ],
         )
 
     @staticmethod

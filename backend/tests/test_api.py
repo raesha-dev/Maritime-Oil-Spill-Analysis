@@ -39,6 +39,7 @@ def test_complete_forensic_workflow(tmp_path) -> None:
         })
         assert hindcast.status_code == 200
         assert hindcast.json()["model"] == "deterministic-hindcast-adapter"
+        assert hindcast.json()["is_fallback"] is True
 
         ranked = client.post("/api/v1/candidates/rank", json={
             "incident_id": "SIH26143-2025-001",
@@ -69,6 +70,14 @@ def test_complete_forensic_workflow(tmp_path) -> None:
         }]})
         assert assessment.status_code == 200
         assert "does not establish causation" in assessment.json()["message"]
+
+        dashboard = client.get("/api/v1/incidents/SIH26143-2025-001/dashboard")
+        assert dashboard.status_code == 200
+        assert dashboard.json()["detection"]["scene_id"] == "S1A_IW_GRDH_20250909"
+        assert dashboard.json()["hindcast"] is not None
+        assert dashboard.json()["hindcast"]["is_fallback"] is True
+        assert dashboard.json()["ranking"]["candidates"][0]["vessel"]["vessel_id"] == "OCEAN_PRIDE"
+        assert dashboard.json()["assessment"]["state"] == "further_investigation"
 
         message = client.post("/api/v1/messages", json={
             "incident_id": "SIH26143-2025-001", "role": "analyst", "body": "Run the comparison."

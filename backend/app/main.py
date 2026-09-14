@@ -13,7 +13,9 @@ from .config import settings
 from .models import (
     Assessment,
     AssessmentRequest,
+    CandidateRanking,
     CandidateRankingRequest,
+    DashboardSnapshot,
     Detection,
     DetectionCreate,
     EvidenceEvent,
@@ -24,6 +26,7 @@ from .models import (
     IncidentCreate,
     Message,
     MessageCreate,
+    OriginEstimate,
     SimulationRequest,
     SimulationResult,
 )
@@ -135,6 +138,42 @@ def detection_or_404(detection_id: UUID) -> Detection:
     return Detection.model_validate(store.decode(row["payload"]))
 
 
+def latest_detection(incident_id: str) -> Detection | None:
+    with store.connection() as connection:
+        row = connection.execute(
+            "SELECT payload FROM detections WHERE incident_id = ? ORDER BY created_at DESC LIMIT 1", (incident_id,)
+        ).fetchone()
+    return Detection.model_validate(store.decode(row["payload"])) if row else None
+
+
+@app.get("/api/v1/incidents/{incident_id}/dashboard", response_model=DashboardSnapshot)
+def get_dashboard(incident_id: str) -> DashboardSnapshot:
+    incident = incident_or_404(incident_id)
+    ranking_payload = store.get_artifact(incident_id, "ranking")
+    hindcast_payload = store.get_artifact(incident_id, "hindcast")
+    assessment_payload = store.get_artifact(incident_id, "assessment")
+    events = list_evidence_events(incident_id)
+    simulations = [SimulationResult.model_validate(item) for item in store.list_simulations(incident_id)]
+    artifact_times = [
+        store.artifact_updated_at(incident_id, artifact_type)
+        for artifact_type in ("ranking", "hindcast", "assessment")
+    ]
+    update_times = [
+        incident.updated_at, *(event.created_at for event in events), *(run.created_at for run in simulations),
+        *(datetime.fromisoformat(value) for value in artifact_times if value),
+    ]
+    return DashboardSnapshot(
+        incident=incident,
+        detection=latest_detection(incident_id),
+        hindcast=OriginEstimate.model_validate(hindcast_payload) if hindcast_payload else None,
+        ranking=CandidateRanking.model_validate(ranking_payload) if ranking_payload else None,
+        simulations=simulations,
+        assessment=Assessment.model_validate(assessment_payload) if assessment_payload else None,
+        evidence_events=events,
+        updated_at=max(update_times),
+    )
+
+
 @app.post("/api/v1/incidents/{incident_id}/hindcasts")
 def create_hindcast(incident_id: str, body: HindcastRequest):
     incident_or_404(incident_id)
@@ -143,13 +182,17 @@ def create_hindcast(incident_id: str, body: HindcastRequest):
         raise HTTPException(status_code=422, detail="detection does not belong to this incident")
     if detection.pipeline_status == "stopped":
         raise HTTPException(status_code=409, detail="hindcast is blocked because detection confidence/classification did not pass the gate")
-    return drift_engine.hindcast(detection, body)
+    result = drift_engine.hindcast(detection, body)
+    store.save_artifact(incident_id, "hindcast", payload(result), now().isoformat())
+    return result
 
 
 @app.post("/api/v1/candidates/rank")
 def create_candidate_ranking(body: CandidateRankingRequest):
     incident_or_404(body.incident_id)
-    return rank_candidates(body.candidates, body.incident_id, body.shortlist_size)
+    result = rank_candidates(body.candidates, body.incident_id, body.shortlist_size)
+    store.save_artifact(body.incident_id, "ranking", payload(result), now().isoformat())
+    return result
 
 
 @app.post("/api/v1/simulations", response_model=SimulationResult, status_code=status.HTTP_201_CREATED)
@@ -176,7 +219,9 @@ def create_simulation(body: SimulationRequest) -> SimulationResult:
 @app.post("/api/v1/incidents/{incident_id}/assessment", response_model=Assessment)
 def create_assessment(incident_id: str, body: AssessmentRequest) -> Assessment:
     incident_or_404(incident_id)
-    return assess(sorted(body.candidates, key=lambda item: item.source_consistency_score, reverse=True), settings)
+    result = assess(sorted(body.candidates, key=lambda item: item.source_consistency_score, reverse=True), settings)
+    store.save_artifact(incident_id, "assessment", payload(result), now().isoformat())
+    return result
 
 
 @app.post("/api/v1/evidence-events", response_model=EvidenceEvent, status_code=status.HTTP_201_CREATED)
