@@ -1,5 +1,9 @@
 # Maritime Insight
 
+## Backend API
+
+The repository now includes a standalone FastAPI service in [backend](backend/README.md). It is intentionally separate from the TanStack frontend so the dashboard can call a stable API now and the deterministic development adapters can later be replaced with AI, OpenDrift, Copernicus, and AIS providers without changing the UI contracts.
+
 Design a high-fidelity desktop mission-control interface for an oil-spill forensic investigation and vessel-attribution platform. The interface is designed for a trained maritime intelligence analyst, not a consumer application. It should feel like a real operational geospatial workstation used for satellite analysis, maritime surveillance, and forensic investigation.
 
 IMPORTANT: Do not use any NTRO, ISRO, NASA, military, government, corporate, or organization logo. The interface must be completely unbranded. Do not invent seals, emblems, flags, agency insignia, or institutional symbols.

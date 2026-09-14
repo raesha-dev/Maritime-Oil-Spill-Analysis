@@ -1,0 +1,27 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+
+@dataclass(frozen=True)
+class Settings:
+    database_path: str = os.getenv("SPILL_API_DATABASE_PATH", "spill-forensics.db")
+    allowed_origins: tuple[str, ...] = tuple(
+        origin.strip()
+        for origin in os.getenv(
+            "SPILL_API_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"
+        ).split(",")
+        if origin.strip()
+    )
+    source_score_threshold: float = float(os.getenv("SPILL_API_SOURCE_SCORE_THRESHOLD", "0.65"))
+    minimum_score_gap: float = float(os.getenv("SPILL_API_MINIMUM_SCORE_GAP", "0.07"))
+
+
+settings = Settings()
