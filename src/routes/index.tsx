@@ -100,14 +100,19 @@ function Workstation() {
   const [clock, setClock] = useState("14:32:07");
   const [lightTheme, setLightTheme] = useState(false);
   useEffect(() => { const tick = () => setClock(new Date().toISOString().slice(11, 19)); tick(); const id = window.setInterval(tick, 1000); return () => window.clearInterval(id); }, []);
-  useEffect(() => { const stored = window.localStorage.getItem("forensic-theme"); setLightTheme(stored === "light"); }, []);
-  useEffect(() => { document.documentElement.classList.toggle("light", lightTheme); window.localStorage.setItem("forensic-theme", lightTheme ? "light" : "dark"); }, [lightTheme]);
+  useEffect(() => { const isLight = window.localStorage.getItem("forensic-theme") === "light"; setLightTheme(isLight); document.documentElement.classList.toggle("light", isLight); }, []);
+  const toggleTheme = () => setLightTheme(current => {
+    const next = !current;
+    document.documentElement.classList.toggle("light", next);
+    window.localStorage.setItem("forensic-theme", next ? "light" : "dark");
+    return next;
+  });
   useEffect(() => { if (!playing) return; const id = window.setInterval(() => setFrame(v => (v + 1) % 4), 900); return () => window.clearInterval(id); }, [playing]);
   const candidate = candidates[selected] ?? candidates[0];
   if (!candidate) return null;
   const events: Array<[string, string, string, string]> = [["08 SEP 14:20","Vessel enters probable origin region","OBSERVED","obs"],["08 SEP 14:45","Estimated release window","INFERRED","inf"],["08 SEP 15:00","Hypothetical release","SIMULATED","sim"],["T+6H","Satellite revisit gap","GAP","gap"],["09 SEP 08:17","Sentinel-1 detects slick","OBSERVED","obs"],["09 SEP 08:30","Real vs simulated comparison","SYSTEM","sys"]];
   return <main className="workstation">
-    <header className="topbar"><div className="title-block"><h1>MARITIME OIL-SPILL FORENSIC ANALYSIS</h1><p>Satellite intelligence for evidence-based vessel attribution</p></div><div className="workflow">{["DETECT", "TRACE", "ATTRIBUTE", "TEST", "INVESTIGATE"].map((x,i)=><span className={i===4?"active":"done"} key={x}>{x}{i<4&&<ChevronRight/>}</span>)}</div><div className="top-actions"><label className="search"><Search/><input aria-label="Search" placeholder="Search vessel, location, incident ID..."/></label><button className="icon-button theme-toggle" title={lightTheme?"Switch to dark theme":"Switch to light theme"} onClick={()=>setLightTheme(v=>!v)}>{lightTheme?<Moon/>:<Sun/>}</button><button className="icon-button" title="Notifications"><Bell/></button><div className="status"><span>UTC {clock}</span><b><i/>SYSTEM OPERATIONAL</b></div></div></header>
+    <header className="topbar"><div className="title-block"><h1>MARITIME OIL-SPILL FORENSIC ANALYSIS</h1><p>Satellite intelligence for evidence-based vessel attribution</p></div><div className="workflow">{["DETECT", "TRACE", "ATTRIBUTE", "TEST", "INVESTIGATE"].map((x,i)=><span className={i===4?"active":"done"} key={x}>{x}{i<4&&<ChevronRight/>}</span>)}</div><div className="top-actions"><label className="search"><Search/><input aria-label="Search" placeholder="Search vessel, location, incident ID..."/></label><button className="icon-button theme-toggle" title={lightTheme?"Switch to dark theme":"Switch to light theme"} onClick={toggleTheme}>{lightTheme?<Moon/>:<Sun/>}</button><button className="icon-button" title="Notifications"><Bell/></button><div className="status"><span>UTC {clock}</span><b><i/>SYSTEM OPERATIONAL</b></div></div></header>
     <aside className="navrail">{nav.map(([Icon,label],i)=><button key={label} className={i===0?"selected":""} title={label}><Icon/><span>{label}</span></button>)}<div className="nav-spacer"/><button title="Help"><CircleHelp/><span>Help</span></button></aside>
     <section className="metrics">
       <Metric label="INCIDENT ID" icon={Crosshair}>SIH26143-2025-001</Metric><Metric label="SATELLITE" icon={Database}>Sentinel-1 SAR</Metric><Metric label="DETECTED SLICK" icon={Waves} sub="CONFIDENCE 0.91 · HIGH">12.4 km²</Metric><Metric label="RELEASE WINDOW" icon={Activity} sub="UNCERTAINTY ± 18 KM">08 Sep 14:00–18:00 UTC</Metric><Metric label="SEARCH AREA" icon={MapPin}>2,850 km²</Metric><Metric label="AIS CANDIDATES" icon={Ship} sub="5 SIMULATED">18</Metric>
