@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity, AlertTriangle, Anchor, Bell, ChevronDown, ChevronRight, CircleHelp,
   Crosshair, Database, FileSearch, FileText, Layers3, MapPin, Pause, Play,
-  Radar, Search, Settings, Ship, SlidersHorizontal, Waves, ZoomIn, ZoomOut,
+  Radar, Search, Settings, Ship, Sun, Moon, Waves, ZoomIn, ZoomOut,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -57,7 +57,9 @@ function MapWorkspace({ layers, toggle }: { layers: LayerState; toggle: (key: ke
       <g className="bathymetry" fill="none"><path d="M130 470C280 435 430 438 610 475S840 575 1000 560"/><path d="M85 507C276 464 460 472 650 519S865 620 1000 600"/><path d="M480 88C595 105 764 60 934 116"/></g>
       <g className="land"><path d="M0 0H310C304 55 279 94 253 122C227 150 200 166 169 190C133 217 110 256 90 306C67 364 39 397 0 418Z"/><path d="M0 0H255C259 45 236 70 220 100C185 92 161 111 132 107C92 102 66 124 0 132Z"/></g>
       <g className="coast"><path d="M310 0C304 55 279 94 253 122C227 150 200 166 169 190C133 217 110 256 90 306C67 364 39 397 0 418"/><path d="M0 132C66 124 92 102 132 107C161 111 185 92 220 100"/></g>
-      <text x="70" y="90" className="place major">INDIA</text><text x="110" y="245" className="place">CHENNAI</text><circle cx="156" cy="237" r="2" className="city"/><text x="102" y="332" className="place">PUDUCHERRY</text><circle cx="168" cy="325" r="2" className="city"/><text x="735" y="330" className="water-label">BAY OF BENGAL</text>
+      <g className="roads"><path d="M21 82C75 105 117 137 153 187S184 286 150 368"/><path d="M42 24C89 66 146 74 208 71"/><path d="M25 280C70 268 118 267 162 275"/><path d="M83 130C111 154 135 168 164 184"/></g>
+      <g className="boundaries"><path d="M22 172C69 157 121 157 176 168"/><path d="M31 291C81 306 118 314 163 304"/></g>
+      <text x="70" y="90" className="place major">INDIA</text><text x="110" y="245" className="place city-label">Chennai</text><circle cx="156" cy="237" r="2" className="city"/><text x="102" y="332" className="place city-label">Puducherry</text><circle cx="168" cy="325" r="2" className="city"/><text x="194" y="182" className="place minor">Cuddalore</text><text x="735" y="330" className="water-label">Bay of Bengal</text>
       {layers.probability && <g className="probability"><ellipse cx="464" cy="257" rx="128" ry="92" fill="url(#prob)" filter="url(#soft)"/><ellipse cx="464" cy="257" rx="35" ry="27"/><ellipse cx="464" cy="257" rx="68" ry="52"/><ellipse cx="464" cy="257" rx="104" ry="77"/><circle cx="464" cy="257" r="5"/><text x="360" y="226">PROBABLE ORIGIN</text><text x="360" y="239">12.31°N, 92.54°E</text><text x="483" y="276">RELEASE 14:00–18:00 UTC</text></g>}
       {layers.simulation && <g className="sim-clouds"><path className="sim sim-a" d="M474 251C515 221 554 202 602 203C652 204 690 225 737 246C704 256 668 272 622 278C568 285 516 273 474 251Z"/><path className="sim sim-b" d="M474 251C520 236 571 230 625 245C675 259 719 288 764 316C707 305 660 303 609 293C552 282 508 269 474 251Z"/><path className="sim sim-c" d="M474 251C520 246 578 267 623 298C665 326 699 353 737 377C680 356 632 344 583 322C536 301 499 274 474 251Z"/></g>}
       {layers.observed && <g className="observed"><path d="M565 255C598 245 632 253 663 269C692 284 714 306 742 318C725 335 703 340 676 329C646 317 618 297 591 289C573 283 560 269 565 255Z"/><path d="M565 255C598 245 632 253 663 269C692 284 714 306 742 318" className="observed-edge"/></g>}
@@ -96,13 +98,21 @@ function Workstation() {
   const [nullState, setNullState] = useState(false);
   const [layers, setLayers] = useState({ observed: true, simulation: true, probability: true, tracks: true });
   const [clock, setClock] = useState("14:32:07");
+  const [lightTheme, setLightTheme] = useState(false);
   useEffect(() => { const tick = () => setClock(new Date().toISOString().slice(11, 19)); tick(); const id = window.setInterval(tick, 1000); return () => window.clearInterval(id); }, []);
+  useEffect(() => { const isLight = window.localStorage.getItem("forensic-theme") === "light"; setLightTheme(isLight); document.documentElement.classList.toggle("light", isLight); }, []);
+  const toggleTheme = () => setLightTheme(current => {
+    const next = !current;
+    document.documentElement.classList.toggle("light", next);
+    window.localStorage.setItem("forensic-theme", next ? "light" : "dark");
+    return next;
+  });
   useEffect(() => { if (!playing) return; const id = window.setInterval(() => setFrame(v => (v + 1) % 4), 900); return () => window.clearInterval(id); }, [playing]);
   const candidate = candidates[selected] ?? candidates[0];
   if (!candidate) return null;
   const events: Array<[string, string, string, string]> = [["08 SEP 14:20","Vessel enters probable origin region","OBSERVED","obs"],["08 SEP 14:45","Estimated release window","INFERRED","inf"],["08 SEP 15:00","Hypothetical release","SIMULATED","sim"],["T+6H","Satellite revisit gap","GAP","gap"],["09 SEP 08:17","Sentinel-1 detects slick","OBSERVED","obs"],["09 SEP 08:30","Real vs simulated comparison","SYSTEM","sys"]];
   return <main className="workstation">
-    <header className="topbar"><div className="title-block"><h1>MARITIME OIL-SPILL FORENSIC ANALYSIS</h1><p>Satellite intelligence for evidence-based vessel attribution</p></div><div className="workflow">{["DETECT", "TRACE", "ATTRIBUTE", "TEST", "INVESTIGATE"].map((x,i)=><span className={i===4?"active":"done"} key={x}>{x}{i<4&&<ChevronRight/>}</span>)}</div><div className="top-actions"><label className="search"><Search/><input aria-label="Search" placeholder="Search vessel, location, incident ID..."/></label><button className="icon-button" title="Notifications"><Bell/></button><div className="status"><span>UTC {clock}</span><b><i/>SYSTEM OPERATIONAL</b></div></div></header>
+    <header className="topbar"><div className="title-block"><h1>MARITIME OIL-SPILL FORENSIC ANALYSIS</h1><p>Satellite intelligence for evidence-based vessel attribution</p></div><div className="workflow">{["DETECT", "TRACE", "ATTRIBUTE", "TEST", "INVESTIGATE"].map((x,i)=><span className={i===4?"active":"done"} key={x}>{x}{i<4&&<ChevronRight/>}</span>)}</div><div className="top-actions"><label className="search"><Search/><input aria-label="Search" placeholder="Search vessel, location, incident ID..."/></label><button className="icon-button theme-toggle" title={lightTheme?"Switch to dark theme":"Switch to light theme"} onClick={toggleTheme}>{lightTheme?<Moon/>:<Sun/>}</button><button className="icon-button" title="Notifications"><Bell/></button><div className="status"><span>UTC {clock}</span><b><i/>SYSTEM OPERATIONAL</b></div></div></header>
     <aside className="navrail">{nav.map(([Icon,label],i)=><button key={label} className={i===0?"selected":""} title={label}><Icon/><span>{label}</span></button>)}<div className="nav-spacer"/><button title="Help"><CircleHelp/><span>Help</span></button></aside>
     <section className="metrics">
       <Metric label="INCIDENT ID" icon={Crosshair}>SIH26143-2025-001</Metric><Metric label="SATELLITE" icon={Database}>Sentinel-1 SAR</Metric><Metric label="DETECTED SLICK" icon={Waves} sub="CONFIDENCE 0.91 · HIGH">12.4 km²</Metric><Metric label="RELEASE WINDOW" icon={Activity} sub="UNCERTAINTY ± 18 KM">08 Sep 14:00–18:00 UTC</Metric><Metric label="SEARCH AREA" icon={MapPin}>2,850 km²</Metric><Metric label="AIS CANDIDATES" icon={Ship} sub="5 SIMULATED">18</Metric>
