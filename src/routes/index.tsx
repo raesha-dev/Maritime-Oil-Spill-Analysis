@@ -90,15 +90,17 @@ function Panel({
   children,
   className = "",
   action,
+  onClick,
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
   action?: React.ReactNode;
+  onClick?: () => void;
 }) {
   return (
-    <section className={`panel ${className}`}>
-      <header className="panel-head">
+    <section className={`panel ${className}`} onClick={onClick}>
+      <header className="panel-header">
         <h2>{title}</h2>
         {action}
       </header>
@@ -407,6 +409,14 @@ const integrityTone = (integrity: Candidate["vessel"]["ais_integrity"]) =>
   ];
 const integrityLabel = (integrity: Candidate["vessel"]["ais_integrity"]) =>
   integrity.replaceAll("_", " ").toUpperCase();
+const integrityColor = (integrity: Candidate["vessel"]["ais_integrity"]) =>
+  ({ consistent: "text-ais-consistent", gap: "text-ais-gap", inconsistent: "text-ais-inconsistent", insufficient_evidence: "text-ais-unknown" })[
+    integrity
+  ];
+const integrityBorder = (integrity: Candidate["vessel"]["ais_integrity"]) =>
+  ({ consistent: "border-ais-consistent", gap: "border-ais-gap", inconsistent: "border-ais-inconsistent", insufficient_evidence: "border-ais-unknown" })[
+    integrity
+  ];
 const displayUtc = (value: string) => new Date(value).toISOString().replace("T", " ").slice(0, 16);
 
 function Workstation() {
@@ -426,6 +436,14 @@ function Workstation() {
     "loading",
   );
   const [dataError, setDataError] = useState<string | null>(null);
+  const [selectedCandidatePanel, setSelectedCandidatePanel] = useState(false);
+  const [selectedSimulationPanel, setSelectedSimulationPanel] = useState(false);
+  const [selectedDossierPanel, setSelectedDossierPanel] = useState(false);
+  const [selectedConsistencyPanel, setSelectedConsistencyPanel] = useState(false);
+  const [selectedDetectedOilPanel, setSelectedDetectedOilPanel] = useState(false);
+  const [selectedHindcastPanel, setSelectedHindcastPanel] = useState(false);
+  const [selectedWhyPanel, setSelectedWhyPanel] = useState(false);
+  const [selectedEvidencePanel, setSelectedEvidencePanel] = useState(false);
   const reloadDashboard = useCallback(async () => {
     setDataMode("loading");
     try {
@@ -474,6 +492,31 @@ function Workstation() {
     const id = window.setInterval(() => setFrame((v) => (v + 1) % 4), 900);
     return () => window.clearInterval(id);
   }, [playing]);
+
+  // Close expanded panels on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (event.target instanceof HTMLElement && event.target.closest('.panel')) {
+        return;
+      }
+      setSelectedCandidatePanel(false);
+      setSelectedSimulationPanel(false);
+      setSelectedDossierPanel(false);
+      setSelectedConsistencyPanel(false);
+      setSelectedDetectedOilPanel(false);
+      setSelectedHindcastPanel(false);
+      setSelectedWhyPanel(false);
+      setSelectedEvidencePanel(false);
+    };
+    
+    if (selectedCandidatePanel || selectedSimulationPanel || selectedDossierPanel || selectedConsistencyPanel || selectedDetectedOilPanel || selectedHindcastPanel || selectedWhyPanel || selectedEvidencePanel) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [selectedCandidatePanel, selectedSimulationPanel, selectedDossierPanel, selectedConsistencyPanel, selectedDetectedOilPanel, selectedHindcastPanel, selectedWhyPanel, selectedEvidencePanel]);
   const candidates = dashboard.ranking?.candidates ?? [];
   const candidate = candidates[selected] ?? candidates[0] ?? demoDashboard.ranking!.candidates[0]!;
   const detection = dashboard.detection ?? demoDashboard.detection!;
@@ -593,12 +636,13 @@ function Workstation() {
           <div className="lower-grid">
             <Panel
               title="VESSEL CANDIDATES"
-              className="candidates"
+              className={`candidates ${selectedCandidatePanel ? 'expanded' : ''}`}
               action={
                 <button className="utility" onClick={() => void reloadDashboard()}>
                   <RefreshCw /> REFRESH
                 </button>
               }
+              onClick={() => setSelectedCandidatePanel(!selectedCandidatePanel)}
             >
               {isNullResult ? (
                 <div className="null-state">
@@ -644,7 +688,7 @@ function Workstation() {
             </Panel>
             <Panel
               title={`COUNTERFACTUAL SIMULATION — ${candidate.vessel.name}`}
-              className="simulation"
+              className={`simulation ${selectedSimulationPanel ? 'expanded' : ''}`}
               action={
                 <div className="sim-actions">
                   <span>OBSERVED vs SIMULATED EVOLUTION</span>
@@ -656,7 +700,18 @@ function Workstation() {
                   </button>
                 </div>
               }
+              onClick={() => setSelectedSimulationPanel(!selectedSimulationPanel)}
             >
+              {selectedSimulationPanel && (
+                <div className="close-expanded" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setSelectedSimulationPanel(false)}
+                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '2px 8px', cursor: 'pointer' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
               <div className="frames">
                 {["0 h", "6 h", "12 h", "24 h"].map((h, i) => (
                   <button
@@ -685,7 +740,21 @@ function Workstation() {
                 <b>{["14:45", "20:45", "02:45", "14:45"][frame]} UTC</b>
               </div>
             </Panel>
-            <Panel title="SELECTED VESSEL" className="dossier">
+            <Panel
+              title="SELECTED VESSEL"
+              className={`dossier ${selectedDossierPanel ? 'expanded' : ''}`}
+              onClick={() => setSelectedDossierPanel(!selectedDossierPanel)}
+            >
+              {selectedDossierPanel && (
+                <div className="close-expanded" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setSelectedDossierPanel(false)}
+                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '2px 8px', cursor: 'pointer' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
               <div className="ship-image">
                 <svg viewBox="0 0 180 90">
                   <path className="sea" d="M0 69Q25 62 45 69T90 69T135 69T180 69V90H0Z" />
@@ -714,7 +783,11 @@ function Workstation() {
               </div>
               <button className="primary-action">VIEW AIS TRACK</button>
             </Panel>
-            <Panel title="SOURCE CONSISTENCY METRICS" className="consistency">
+            <Panel
+              title="SOURCE CONSISTENCY METRICS"
+              className={`consistency ${selectedConsistencyPanel ? 'expanded' : ''}`}
+              onClick={() => setSelectedConsistencyPanel(!selectedConsistencyPanel)}
+            >
               <div className="bars">
                 {[
                   ["Spatial Overlap (IoU)", simulation.components.spatial_iou, ""],
@@ -758,8 +831,20 @@ function Workstation() {
         <aside className="intel-column">
           <Panel
             title="DETECTED OIL SLICK"
+            className={`detected-oil ${selectedDetectedOilPanel ? 'expanded' : ''}`}
             action={<span className="evidence-tag observed-tag">OBSERVED</span>}
+            onClick={() => setSelectedDetectedOilPanel(!selectedDetectedOilPanel)}
           >
+            {selectedDetectedOilPanel && (
+              <div className="close-expanded" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setSelectedDetectedOilPanel(false)}
+                  style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            )}
             <div className="slick-data">
               <SarImage />
               <dl>
@@ -783,8 +868,20 @@ function Workstation() {
           </Panel>
           <Panel
             title="HINDCAST ANALYSIS"
+            className={`hindcast-panel ${selectedHindcastPanel ? 'expanded' : ''}`}
             action={<span className="evidence-tag inferred-tag">INFERRED</span>}
+            onClick={() => setSelectedHindcastPanel(!selectedHindcastPanel)}
           >
+            {selectedHindcastPanel && (
+              <div className="close-expanded" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setSelectedHindcastPanel(false)}
+                  style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            )}
             <div className="hindcast">
               <Heatmap />
               <dl>
@@ -813,9 +910,20 @@ function Workstation() {
           </Panel>
           <Panel
             title="WHY THIS CANDIDATE COULD BE THE CAUSE"
-            className="why-panel"
+            className={`why-panel ${selectedWhyPanel ? 'expanded' : ''}`}
             action={<span className="evidence-tag compared-tag">COMPARED</span>}
+            onClick={() => setSelectedWhyPanel(!selectedWhyPanel)}
           >
+            {selectedWhyPanel && (
+              <div className="close-expanded" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setSelectedWhyPanel(false)}
+                  style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            )}
             <ul className="evidence-list">
               {assessment.dossier.map((item, index) => (
                 <li className={index < 2 ? "pass" : index === 2 ? "caution" : "info"} key={item}>
@@ -830,13 +938,24 @@ function Workstation() {
           </Panel>
           <Panel
             title="EVIDENCE CHAIN"
-            className="timeline"
+            className={`timeline ${selectedEvidencePanel ? 'expanded' : ''}`}
             action={
               <button className="mini-select">
                 ALL EVENTS <ChevronDown />
               </button>
             }
+            onClick={() => setSelectedEvidencePanel(!selectedEvidencePanel)}
           >
+            {selectedEvidencePanel && (
+              <div className="close-expanded" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setSelectedEvidencePanel(false)}
+                  style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            )}
             {events.map((event) => {
               const cls =
                 (
