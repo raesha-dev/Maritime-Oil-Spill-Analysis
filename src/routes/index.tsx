@@ -109,28 +109,36 @@ function Panel({
 
 type LayerState = { observed: boolean; simulation: boolean; probability: boolean; tracks: boolean };
 
+type Section = (typeof nav)[number][1] | "Help";
+
 function MapWorkspace({
   layers,
   toggle,
   origin,
   candidates,
+  selectedIndex,
+  onSelect,
+  animationEnabled,
 }: {
   layers: LayerState;
   toggle: (key: keyof LayerState) => void;
   origin: [number, number];
   candidates: Candidate[];
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+  animationEnabled: boolean;
 }) {
   const vesselNames = candidates.map((candidate) => candidate.vessel.name);
   return (
-    <div className="map-wrap" aria-label="Bay of Bengal forensic map">
+    <div className={`map-wrap ${animationEnabled ? "motion-on" : "motion-off"}`} aria-label="Bay of Bengal forensic map">
       <div className="map-toolbar">
-        <button title="Zoom in">
+        <button title="Zoom in" onClick={() => document.querySelector<HTMLElement>(".map-wrap")?.classList.add("map-zoomed")}>
           <ZoomIn />
         </button>
-        <button title="Zoom out">
+        <button title="Zoom out" onClick={() => document.querySelector<HTMLElement>(".map-wrap")?.classList.remove("map-zoomed")}>
           <ZoomOut />
         </button>
-        <button title="Map layers">
+        <button title="Map layers" onClick={() => document.querySelector<HTMLElement>(".legend")?.classList.toggle("open")}>
           <Layers3 />
         </button>
       </div>
@@ -244,36 +252,36 @@ function MapWorkspace({
         )}
         {layers.tracks && (
           <g className="tracks">
-            <path className="track good" d="M463 257C510 290 573 322 649 349S761 391 838 421" />
-            <path className="track warn" d="M463 257C431 207 421 161 428 112S438 73 421 51" />
-            <path className="track good" d="M463 257C515 226 580 186 648 160S770 117 850 94" />
-            <path className="track bad" d="M463 257C500 250 535 234 566 202" />
-            <path className="track unknown" d="M463 257C419 293 387 335 361 389" />
-            <g className="vessel good" transform="translate(838 421) rotate(116)">
+            <path className={`track good ${selectedIndex === 0 ? "selected-track" : "dim-track"}`} d="M463 257C510 290 573 322 649 349S761 391 838 421" />
+            <path className={`track warn ${selectedIndex === 1 ? "selected-track" : "dim-track"}`} d="M463 257C431 207 421 161 428 112S438 73 421 51" />
+            <path className={`track good ${selectedIndex === 2 ? "selected-track" : "dim-track"}`} d="M463 257C515 226 580 186 648 160S770 117 850 94" />
+            <path className={`track bad ${selectedIndex === 3 ? "selected-track" : "dim-track"}`} d="M463 257C500 250 535 234 566 202" />
+            <path className={`track unknown ${selectedIndex === 4 ? "selected-track" : "dim-track"}`} d="M463 257C419 293 387 335 361 389" />
+            <g className={`vessel good ${selectedIndex === 0 ? "selected-vessel" : "dim-vessel"}`} onClick={() => onSelect(0)} role="button" tabIndex={0} transform="translate(838 421) rotate(116)">
               <path d="M0-9L6 7L0 4L-6 7Z" />
               <text transform="rotate(-116)" x="12" y="3">
                 {vesselNames[0] ?? "VESSEL 1"}
               </text>
             </g>
-            <g className="vessel warn" transform="translate(421 51) rotate(-8)">
+            <g className={`vessel warn ${selectedIndex === 1 ? "selected-vessel" : "dim-vessel"}`} onClick={() => onSelect(1)} role="button" tabIndex={0} transform="translate(421 51) rotate(-8)">
               <path d="M0-9L6 7L0 4L-6 7Z" />
               <text transform="rotate(8)" x="12" y="3">
                 {vesselNames[1] ?? "VESSEL 2"}
               </text>
             </g>
-            <g className="vessel good" transform="translate(850 94) rotate(64)">
+            <g className={`vessel good ${selectedIndex === 2 ? "selected-vessel" : "dim-vessel"}`} onClick={() => onSelect(2)} role="button" tabIndex={0} transform="translate(850 94) rotate(64)">
               <path d="M0-9L6 7L0 4L-6 7Z" />
               <text transform="rotate(-64)" x="12" y="3">
                 {vesselNames[2] ?? "VESSEL 3"}
               </text>
             </g>
-            <g className="vessel bad" transform="translate(566 202) rotate(50)">
+            <g className={`vessel bad ${selectedIndex === 3 ? "selected-vessel" : "dim-vessel"}`} onClick={() => onSelect(3)} role="button" tabIndex={0} transform="translate(566 202) rotate(50)">
               <path d="M0-9L6 7L0 4L-6 7Z" />
               <text transform="rotate(-50)" x="12" y="3">
                 {vesselNames[3] ?? "VESSEL 4"}
               </text>
             </g>
-            <g className="vessel unknown" transform="translate(361 389) rotate(222)">
+            <g className={`vessel unknown ${selectedIndex === 4 ? "selected-vessel" : "dim-vessel"}`} onClick={() => onSelect(4)} role="button" tabIndex={0} transform="translate(361 389) rotate(222)">
               <path d="M0-9L6 7L0 4L-6 7Z" />
               <text transform="rotate(-222)" x="12" y="3">
                 {vesselNames[4] ?? "RESERVE"}
@@ -409,10 +417,110 @@ const integrityLabel = (integrity: Candidate["vessel"]["ais_integrity"]) =>
   integrity.replaceAll("_", " ").toUpperCase();
 const displayUtc = (value: string) => new Date(value).toISOString().replace("T", " ").slice(0, 16);
 
+function Inspector({
+  section,
+  candidates,
+  selected,
+  candidate,
+  detection,
+  hindcast,
+  simulation,
+  assessment,
+  events,
+  frame,
+  playing,
+  layers,
+  animationEnabled,
+  onSelect,
+  onFrame,
+  onPlay,
+  onReset,
+  onToggleLayer,
+  onToggleAnimation,
+  onViewImage,
+}: {
+  section: Section;
+  candidates: Candidate[];
+  selected: number;
+  candidate: Candidate;
+  detection: NonNullable<DashboardSnapshot["detection"]>;
+  hindcast: NonNullable<DashboardSnapshot["hindcast"]>;
+  simulation: DashboardSnapshot["simulations"][number];
+  assessment: NonNullable<DashboardSnapshot["assessment"]>;
+  events: DashboardSnapshot["evidence_events"];
+  frame: number;
+  playing: boolean;
+  layers: LayerState;
+  animationEnabled: boolean;
+  onSelect: (index: number) => void;
+  onFrame: (value: number) => void;
+  onPlay: () => void;
+  onReset: () => void;
+  onToggleLayer: (key: keyof LayerState) => void;
+  onToggleAnimation: () => void;
+}) {
+  const title = section === "Help" ? "OPERATIONS GUIDE" : `${section.toUpperCase()} WORKSPACE`;
+  return (
+    <aside className="inspector" aria-label={`${section} workspace`}>
+      <div className="inspector-title"><span>INVESTIGATION CONSOLE</span><strong>{title}</strong></div>
+      {section === "Dashboard" && (
+        <>
+          <Panel title="CURRENT INVESTIGATION" action={<span className="evidence-tag compared-tag">LIVE VIEW</span>}>
+            <div className="overview-copy"><strong>{candidate.vessel.name}</strong><p>{assessment.message}</p></div>
+            <div className="overview-grid">
+              <Metric label="SLICK" icon={Waves}>{detection.area_km2.toFixed(1)} km²</Metric>
+              <Metric label="ORIGIN RADIUS" icon={MapPin}>±{hindcast.radius_km.toFixed(0)} km</Metric>
+              <Metric label="CONSISTENCY" icon={Activity}>{simulation.source_consistency_score.toFixed(2)}</Metric>
+              <Metric label="AIS STATE" icon={Ship}>{integrityLabel(candidate.vessel.ais_integrity)}</Metric>
+            </div>
+          </Panel>
+          <Panel title="EVIDENCE SNAPSHOT" action={<span className="evidence-tag observed-tag">{events.length} EVENTS</span>}>
+            <div className="compact-events">{events.slice(-4).map((event) => <div className="compact-event" key={event.id}><b>{event.kind}</b><span>{event.description}</span></div>)}</div>
+          </Panel>
+        </>
+      )}
+      {section === "Detection" && (
+        <>
+          <Panel title="DETECTED OIL SLICK" action={<span className="evidence-tag observed-tag">OBSERVED</span>}>
+            <div className="slick-data"><SarImage /><dl><dt>SATELLITE</dt><dd>{detection.satellite} (SAR)</dd><dt>ACQUISITION</dt><dd>{displayUtc(detection.acquired_at)} UTC</dd><dt>AREA</dt><dd>{detection.area_km2.toFixed(1)} km²</dd><dt>CONFIDENCE</dt><dd className="text-good">{detection.oil_confidence.toFixed(2)} · {detection.confidence_tier.toUpperCase()}</dd><dt>CLASSIFICATION</dt><dd>{detection.classification.toUpperCase()}</dd></dl></div>
+            <button className="secondary-action" disabled title="The current backend does not provide a SAR asset endpoint">FULL SAR IMAGE UNAVAILABLE</button>
+          </Panel>
+          <Panel title="HINDCAST FIELD" action={<span className="evidence-tag inferred-tag">INFERRED</span>}><div className="hindcast"><Heatmap /><dl><dt>ORIGIN ESTIMATE</dt><dd>{hindcast.center[1].toFixed(2)}° N, {hindcast.center[0].toFixed(2)}° E</dd><dt>RELEASE WINDOW</dt><dd>{displayUtc(hindcast.release_window_start)}–{displayUtc(hindcast.release_window_end).slice(11)} UTC</dd><dt>UNCERTAINTY</dt><dd>Approx. {hindcast.radius_km.toFixed(0)} km radius</dd><dt>MODEL</dt><dd>{hindcast.model}</dd></dl></div></Panel>
+        </>
+      )}
+      {section === "Trace" && (
+        <>
+          <Panel title="TRACE CONTROLS" action={<span className="evidence-tag compared-tag">FIXED GEOMETRY</span>}>
+            <div className="control-list"><button className={layers.tracks ? "control active" : "control"} onClick={() => onToggleLayer("tracks")}>AIS TRACKS <b>{layers.tracks ? "ON" : "OFF"}</b></button><button className={layers.probability ? "control active" : "control"} onClick={() => onToggleLayer("probability")}>HINDCAST FIELD <b>{layers.probability ? "ON" : "OFF"}</b></button><button className={animationEnabled ? "control active" : "control"} onClick={onToggleAnimation}>ROUTE ANIMATION <b>{animationEnabled ? "ON" : "OFF"}</b></button></div>
+            <p className="panel-note">Dashed AIS routes flow along fixed geometry. Selecting a vessel brightens its route and marker without inventing movement.</p>
+          </Panel>
+          <Panel title="SELECTED ROUTE"><div className="route-readout"><strong>{candidate.vessel.name}</strong><span>{candidate.vessel.mmsi} · {candidate.vessel.vessel_type}</span><span>{candidate.distance_to_origin_km.toFixed(1)} km from inferred origin</span></div></Panel>
+        </>
+      )}
+      {section === "Vessels" && (
+        <>
+          <Panel title="VESSEL CANDIDATES" action={<span className="evidence-tag compared-tag">100 → 20 → 5</span>}>
+            <div className="candidate-table-head"><span>#</span><span>VESSEL / MMSI</span><span>TYPE</span><span>SCORE</span></div>
+            {candidates.map((item, index) => <button className={`candidate-row wide ${index === selected ? "active" : ""}`} key={item.vessel.vessel_id} onClick={() => onSelect(index)}><span>{item.rank}</span><span><b>{item.vessel.name}</b><small>{item.vessel.mmsi}</small></span><span>{item.vessel.vessel_type}</span><strong>{item.attribution_score.toFixed(2)}</strong></button>)}
+          </Panel>
+          <Panel title="SOURCE CONSISTENCY" action={<span className="evidence-tag compared-tag">NOT CAUSATION</span>}><div className="bars">{[["Spatial overlap", simulation.components.spatial_iou],["Centroid match", simulation.components.centroid_match],["Area evolution", simulation.components.area_curve_dtw],["Shape similarity", simulation.components.shape_match]].map(([label, value]) => <div className="bar-row" key={String(label)}><span>{label}</span><div><i style={{ width: `${Number(value) * 100}%` }} /></div><b>{Number(value).toFixed(2)}</b></div>)}</div><div className="score-line"><strong>{simulation.source_consistency_score.toFixed(2)}</strong><span>OVERALL CONSISTENCY</span></div></Panel>
+        </>
+      )}
+      {section === "Simulation" && <Panel title={`COUNTERFACTUAL SIMULATION · ${candidate.vessel.name}`} action={<div className="sim-actions"><span>{playing ? "RUNNING" : "READY"}</span><button onClick={onPlay} title={playing ? "Pause simulation" : "Play simulation"}>{playing ? <Pause /> : <Play />}</button><button onClick={onReset} title="Reset simulation"><RefreshCw /></button></div>}><div className="frames">{["0 h", "6 h", "12 h", "24 h"].map((hour, index) => <button key={hour} onClick={() => onFrame(index)}><SimFrame hour={hour} index={index} active={index === frame} /></button>)}</div><div className="scrubber"><span>MODEL TIME</span><input aria-label="Model time" type="range" min="0" max="3" value={frame} onChange={(event) => onFrame(Number(event.target.value))} /><b>T+{frame * 6}h</b></div></Panel>}
+      {section === "Evidence" && <Panel title="EVIDENCE CHAIN" action={<span className="evidence-tag compared-tag">CHRONOLOGICAL</span>}><div className="timeline expanded-timeline">{events.map((event) => <div className={`event ${{ OBSERVED: "obs", INFERRED: "inf", SIMULATED: "sim", SYSTEM: "sys" }[event.kind] ?? "gap"}`} key={event.id}><i /><time>{displayUtc(event.occurred_at)}</time><span>{event.description}<small>{event.source_ref}</small></span><b>{event.kind}</b></div>)}</div></Panel>}
+      {section === "Reports" && <Panel title="REPORTS" action={<span className="evidence-tag compared-tag">BACKEND CAPABILITY</span>}><div className="empty-state"><FileText /><strong>REPORT EXPORT IS NOT AVAILABLE</strong><p>The current FastAPI contract does not expose a report endpoint. This control remains clearly disabled instead of fabricating a report.</p><button className="secondary-action" disabled>EXPORT REPORT</button></div></Panel>}
+      {section === "Settings" && <Panel title="WORKSTATION SETTINGS"><div className="control-list"><button className={animationEnabled ? "control active" : "control"} onClick={onToggleAnimation}>ANIMATION <b>{animationEnabled ? "ON" : "OFF"}</b></button><button className="control" onClick={() => onToggleLayer("observed")}>OBSERVED SLICK <b>{layers.observed ? "ON" : "OFF"}</b></button><button className="control" onClick={() => onToggleLayer("simulation")}>SIMULATED SLICK <b>{layers.simulation ? "ON" : "OFF"}</b></button></div><p className="panel-note">Theme is persisted locally. Reduced-motion preferences always take precedence.</p></Panel>}
+      {section === "Help" && <Panel title="HELP"><div className="help-copy"><strong>FORENSIC WORKSTATION</strong><p>Use the map as the primary investigation surface. Select a vessel from the map or Vessels view, then inspect its route, consistency metrics, simulation frames, and evidence chain.</p><p>Observed data is marked red, inferred results amber, and simulated material violet.</p></div></Panel>}
+    </aside>
+  );
+}
+
 function Workstation() {
+  const [activeSection, setActiveSection] = useState<Section>("Dashboard");
   const [selected, setSelected] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [frame, setFrame] = useState(2);
+  const [animationEnabled, setAnimationEnabled] = useState(true);
   const [layers, setLayers] = useState({
     observed: true,
     simulation: true,
@@ -541,14 +649,14 @@ function Workstation() {
         </div>
       </header>
       <aside className="navrail">
-        {nav.map(([Icon, label], i) => (
-          <button key={label} className={i === 0 ? "selected" : ""} title={label}>
+        {nav.map(([Icon, label]) => (
+          <button key={label} className={activeSection === label ? "selected" : ""} title={label} onClick={() => setActiveSection(label)}>
             <Icon />
             <span>{label}</span>
           </button>
         ))}
         <div className="nav-spacer" />
-        <button title="Help">
+        <button title="Help" className={activeSection === "Help" ? "selected" : ""} onClick={() => setActiveSection("Help")}>
           <CircleHelp />
           <span>Help</span>
         </button>
@@ -588,9 +696,39 @@ function Workstation() {
             layers={layers}
             origin={hindcast.center}
             candidates={candidates}
+            selectedIndex={selected}
+            onSelect={(index) => setSelected(index)}
+            animationEnabled={animationEnabled}
             toggle={(key) => setLayers((v) => ({ ...v, [key]: !v[key] }))}
           />
-          <div className="lower-grid">
+          <Inspector
+            section={activeSection}
+            candidates={candidates}
+            selected={selected}
+            candidate={candidate}
+            detection={detection}
+            hindcast={hindcast}
+            simulation={simulation}
+            assessment={assessment}
+            events={events}
+            frame={frame}
+            playing={playing}
+            layers={layers}
+            animationEnabled={animationEnabled}
+            onSelect={setSelected}
+            onFrame={(value) => {
+              setFrame(value);
+              setPlaying(false);
+            }}
+            onPlay={() => setPlaying((value) => !value)}
+            onReset={() => {
+              setPlaying(false);
+              setFrame(0);
+            }}
+            onToggleLayer={(key) => setLayers((value) => ({ ...value, [key]: !value[key] }))}
+            onToggleAnimation={() => setAnimationEnabled((value) => !value)}
+          />
+          <div className="legacy-workspace" aria-hidden="true">
             <Panel
               title="VESSEL CANDIDATES"
               className="candidates"

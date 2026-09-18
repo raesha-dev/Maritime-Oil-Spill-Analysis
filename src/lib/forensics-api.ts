@@ -85,7 +85,11 @@ export class ForensicsApiError extends Error {
   }
 }
 
-const apiBaseUrl = (import.meta.env.VITE_FORENSICS_API_URL ?? "http://localhost:8000").replace(
+const apiBaseUrl = (
+  import.meta.env.VITE_API_BASE ??
+  import.meta.env.VITE_FORENSICS_API_URL ??
+  "http://localhost:8000"
+).replace(
   /\/$/,
   "",
 );
