@@ -1,0 +1,85 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mmsi": "563214000",
+        "name": "OCEAN PRIDE",
+        "vessel_type": "Tanker",
+        "ais_integrity": "CONSISTENT"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [92.54, 12.31],
+          [92.86, 12.37]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mmsi": "563214001",
+        "name": "EASTERN STAR",
+        "vessel_type": "Cargo",
+        "ais_integrity": "GAP"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [92.60, 12.25],
+          [92.90, 12.40]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mmsi": "563214002",
+        "name": "SEA VOYAGER",
+        "vessel_type": "Tanker",
+        "ais_integrity": "CONSISTENT"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [92.40, 12.40],
+          [92.85, 12.38]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mmsi": "563214003",
+        "name": "AL ZUBARA",
+        "vessel_type": "Cargo",
+        "ais_integrity": "GAP"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [92.70, 12.50],
+          [92.95, 12.45]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mmsi": "563214004",
+        "name": "BLUE HORIZON",
+        "vessel_type": "Tanker",
+        "ais_integrity": "INCONSISTENT"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [92.30, 12.50],
+          [92.90, 12.40]
+        ]
+      }
+    }
+  ]
+}

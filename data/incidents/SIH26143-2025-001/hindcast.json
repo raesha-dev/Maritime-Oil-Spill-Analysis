@@ -1,0 +1,12 @@
+{
+  "center": [92.54, 12.31],
+  "radius_km": 18,
+  "release_window_start": "2025-09-08T14:00:00Z",
+  "release_window_end": "2025-09-08T18:00:00Z",
+  "model": "OpenDrift-ENSEMBLE-0914-07",
+  "is_fallback": false,
+  "warnings": [],
+  "ensemble_size": 10,
+  "ensemble_center": [92.54, 12.31],
+  "ensemble_uncertainty_km": 18
+}

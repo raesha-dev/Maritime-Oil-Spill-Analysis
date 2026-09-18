@@ -1,0 +1,121 @@
+{
+  "candidates": [
+    {
+      "rank": 1,
+      "mmsi": "563214000",
+      "imo": "9234567",
+      "name": "OCEAN PRIDE",
+      "vessel_type": "Tanker",
+      "proximity_km": 12.0,
+      "ais_integrity": "CONSISTENT",
+      "in_uncertainty_reserve": false,
+      "risk_profile": {
+        "built_year": 2010,
+        "hull_type": "SINGLE",
+        "flag": "IN",
+        "psc_detentions_3yr": 0,
+        "sanctions_listed": false
+      },
+      "behavioral_flags": []
+    },
+    {
+      "rank": 2,
+      "mmsi": "563214001",
+      "imo": "9234568",
+      "name": "EASTERN STAR",
+      "vessel_type": "Cargo",
+      "proximity_km": 18.0,
+      "ais_integrity": "GAP",
+      "in_uncertainty_reserve": false,
+      "risk_profile": {
+        "built_year": 2008,
+        "hull_type": "DOUBLE",
+        "flag": "LR",
+        "psc_detentions_3yr": 1,
+        "sanctions_listed": false
+      },
+      "behavioral_flags": [
+        {
+          "kind": "LOITERING",
+          "detail": "Vessel loitered near release window",
+          "at": "2025-09-08T15:30:00Z"
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "mmsi": "563214002",
+      "imo": "9234569",
+      "name": "SEA VOYAGER",
+      "vessel_type": "Tanker",
+      "proximity_km": 25.0,
+      "ais_integrity": "CONSISTENT",
+      "in_uncertainty_reserve": false,
+      "risk_profile": {
+        "built_year": 2005,
+        "hull_type": "SINGLE",
+        "flag": "IN",
+        "psc_detentions_3yr": 2,
+        "sanctions_listed": false
+      },
+      "behavioral_flags": []
+    },
+    {
+      "rank": 4,
+      "mmsi": "563214003",
+      "imo": "9234570",
+      "name": "AL ZUBARA",
+      "vessel_type": "Cargo",
+      "proximity_km": 28.0,
+      "ais_integrity": "GAP",
+      "in_uncertainty_reserve": false,
+      "risk_profile": {
+        "built_year": 2009,
+        "hull_type": "DOUBLE",
+        "flag": "QA",
+        "psc_detentions_3yr": 0,
+        "sanctions_listed": false
+      },
+      "behavioral_flags": []
+    },
+    {
+      "rank": 5,
+      "mmsi": "563214004",
+      "imo": "9234571",
+      "name": "BLUE HORIZON",
+      "vessel_type": "Tanker",
+      "proximity_km": 31.0,
+      "ais_integrity": "INCONSISTENT",
+      "in_uncertainty_reserve": false,
+      "risk_profile": {
+        "built_year": 2006,
+        "hull_type": "SINGLE",
+        "flag": "LC",
+        "psc_detentions_3yr": 3,
+        "sanctions_listed": true
+      },
+      "behavioral_flags": [
+        {
+          "kind": "SPEED_DROP",
+          "detail": "Speed dropped from 12 kn to 5 kn",
+          "at": "2025-09-08T14:45:00Z"
+        }
+      ]
+    }
+  ],
+  "raw_candidate_count": 18,
+  "uncertainty_reserve": [
+    {
+      "rank": 6,
+      "mmsi": "563214005",
+      "imo": null,
+      "name": "UNCERTAINTY RESERVE",
+      "vessel_type": "Tanker",
+      "proximity_km": 35.0,
+      "ais_integrity": "INSUFFICIENT",
+      "in_uncertainty_reserve": true,
+      "risk_profile": null,
+      "behavioral_flags": []
+    }
+  ]
+}
