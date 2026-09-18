@@ -18,6 +18,7 @@ class Settings:
     database_path: str = os.getenv(
         "SPILL_API_DATABASE_PATH", str(Path(__file__).resolve().parents[1] / "spill-forensics.db")
     )
+    data_dir: Path = Path(os.getenv("SPILL_API_DATA_DIR", "data"))
     allowed_origins: tuple[str, ...] = tuple(
         origin.strip()
         for origin in os.getenv(
@@ -27,6 +28,8 @@ class Settings:
     )
     source_score_threshold: float = float(os.getenv("SPILL_API_SOURCE_SCORE_THRESHOLD", "0.65"))
     minimum_score_gap: float = float(os.getenv("SPILL_API_MINIMUM_SCORE_GAP", "0.07"))
+    demo_mode: bool = os.getenv("SPILL_API_DEMO_MODE", "true").lower() == "true"
+    scenario: str = os.getenv("SPILL_API_SCENARIO", "clean")
 
 
 settings = Settings()

@@ -1,0 +1,14 @@
+{
+  "incident_id": "SIH26143-2025-001",
+  "title": "Bay of Bengal demonstration",
+  "scene_id": "S1A_IW_GRDH_20250909",
+  "satellite": "Sentinel-1",
+  "aoi": [
+    [92.0, 12.0],
+    [93.0, 12.0],
+    [92.5, 13.0]
+  ],
+  "detected_at": "2025-09-09T08:17:00Z",
+  "processed_at": "2025-09-09T08:30:00Z",
+  "model_run_id": "OD-ENS-0914-07"
+}
