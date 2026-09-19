@@ -26,7 +26,33 @@ class DriftEngine(Protocol):
 
     def hindcast(self, detection: Detection, request: HindcastRequest) -> OriginEstimate: ...
 
+class PhysicsDriftEngine:
+    """
+    Physics-backed drift engine boundary.
 
+    The real OpenDrift implementation will be connected here.
+    """
+
+    def hindcast(self, detection: Detection, request: HindcastRequest) -> OriginEstimate:
+        raise NotImplementedError(
+            "Physics drift engine is not configured yet. "
+            "Use DeterministicDriftAdapter for local development."
+        )
+def _move_point(
+    longitude: float,
+    latitude: float,
+    east_km: float,
+    north_km: float,
+) -> tuple[float, float]:
+    """Move a geographic point by an approximate east/north distance in km."""
+    new_latitude = latitude + north_km / 111.32
+    new_longitude = longitude + east_km / max(
+        0.01,
+        111.32 * cos(latitude * pi / 180),
+    )
+    return round(new_longitude, 6), round(new_latitude, 6)   
+    
+    
 class DeterministicDriftAdapter:
     """A repeatable local adapter for UI development; it is not a physics model."""
 
@@ -40,10 +66,14 @@ class DeterministicDriftAdapter:
         wind_bearing = request.wind_bearing_degrees * pi / 180
         east_km = -(current_km * sin(bearing) + wind_km * sin(wind_bearing))
         north_km = -(current_km * cos(bearing) + wind_km * cos(wind_bearing))
-        origin_latitude = latitude + north_km / 111.32
-        origin_longitude = longitude + east_km / max(0.01, 111.32 * cos(latitude * pi / 180))
+        center = _move_point(
+            longitude,
+            latitude,
+            east_km,
+            north_km,
+)
         radius = max(2.0, (current_km + wind_km) / max(3, request.ensemble_size))
-        center = (round(origin_longitude, 6), round(origin_latitude, 6))
+        
         contour = self._circle(center, radius, 24)
         return OriginEstimate(
             center=center,
@@ -58,12 +88,14 @@ class DeterministicDriftAdapter:
     def _circle(center: tuple[float, float], radius_km: float, steps: int) -> list[tuple[float, float]]:
         longitude, latitude = center
         return [
-            (
-                round(longitude + radius_km * sin((index / steps) * 2 * pi) / (111.32 * cos(latitude * pi / 180)), 6),
-                round(latitude + radius_km * cos((index / steps) * 2 * pi) / 111.32, 6),
-            )
-            for index in range(steps + 1)
-        ]
+    _move_point(
+        longitude,
+        latitude,
+        radius_km * sin((index / steps) * 2 * pi),
+        radius_km * cos((index / steps) * 2 * pi),
+    )
+    for index in range(steps + 1)
+]
 
 
 def rank_candidates(request: list[CandidateInput], incident_id: str, shortlist_size: int) -> CandidateRanking:
@@ -107,6 +139,16 @@ def simulation_cache_key(request: SimulationRequest) -> str:
     stable = "|".join((request.candidate.vessel.vessel_id, request.environment_cache_key, request.release_time.isoformat()))
     return sha256(stable.encode("utf-8")).hexdigest()
 
+def run_counterfactual_simulation(request: SimulationRequest) -> ConsistencyComponents:
+    """
+    Run a deterministic counterfactual comparison for the current MVP.
+
+    This is a development adapter, not a physical oil-spill simulation.
+    The function preserves the same comparison dimensions that the final
+    physics-backed implementation will use:
+    spatial IoU, centroid match, shape match, and area-curve similarity.
+    """
+    return request.components
 
 def assess(candidates: list[CandidateEvaluation], settings: Settings) -> Assessment:
     if not candidates:

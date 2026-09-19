@@ -31,6 +31,7 @@ from .services import (
     DeterministicDriftAdapter,
     assess,
     rank_candidates,
+    run_counterfactual_simulation,
     simulation_cache_key,
     source_consistency_score,
 )
@@ -161,10 +162,17 @@ def create_simulation(body: SimulationRequest) -> SimulationResult:
         if row:
             return SimulationResult.model_validate({**store.decode(row["payload"]), "cached": True})
         timestamp = now()
+        components = run_counterfactual_simulation(body)
+
         result = SimulationResult(
-            id=uuid4(), incident_id=body.incident_id, candidate_id=body.candidate.vessel.vessel_id,
-            source_consistency_score=source_consistency_score(body.components), components=body.components,
-            cache_key=key, cached=False, created_at=timestamp,
+            id=uuid4(),
+            incident_id=body.incident_id,
+            candidate_id=body.candidate.vessel.vessel_id,
+            source_consistency_score=source_consistency_score(components),
+            components=components,
+            cache_key=key,
+            cached=False,
+            created_at=timestamp,
         )
         connection.execute(
             "INSERT INTO simulations(cache_key, payload, created_at) VALUES (?, ?, ?)",
