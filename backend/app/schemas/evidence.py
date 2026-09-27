@@ -5,17 +5,20 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from ..vocabulary.guard import SafeText
+from .vessel import VesselCandidate
+
 
 class DossierLine(BaseModel):
     tag: Literal["PHYSICS", "BEHAVIORAL", "RISK_CONTEXT"]
-    text: str  # Will be validated as SafeText by vocabulary guard
+    text: SafeText
 
 
 class Dossier(BaseModel):
     vessel_name: str
-    headline: str
+    headline: SafeText
     lines: list[DossierLine]
-    verdict: str
+    verdict: SafeText
 
 
 class AttributionOutcome(str, Enum):
@@ -26,6 +29,11 @@ class AttributionOutcome(str, Enum):
 
 class AttributionResult(BaseModel):
     outcome: AttributionOutcome
-    message: str
-    top: list[dict] | None = None  # VesselCandidate data as dict
+    message: SafeText
+    top: list[VesselCandidate] | None = None
     gap: float | None = None
+
+
+class AttributionBundle(BaseModel):
+    attribution: AttributionResult
+    dossier: Dossier | None = None

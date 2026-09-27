@@ -7,6 +7,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .vocabulary.guard import SafeText
+
 
 Score = Annotated[float, Field(ge=0, le=1)]
 Coordinate = tuple[Annotated[float, Field(ge=-180, le=180)], Annotated[float, Field(ge=-90, le=90)]]
@@ -24,7 +26,7 @@ class HealthResponse(StrictModel):
 
 class IncidentCreate(StrictModel):
     incident_id: str = Field(pattern=r"^[A-Z0-9][A-Z0-9_-]{2,63}$")
-    title: str = Field(min_length=3, max_length=160)
+    title: SafeText = Field(min_length=3, max_length=160)
     aoi: list[Coordinate] = Field(min_length=3, max_length=500)
     detected_at: datetime
 
@@ -82,8 +84,10 @@ class OriginEstimate(StrictModel):
     radius_km: Annotated[float, Field(gt=0)]
     release_window_start: datetime
     release_window_end: datetime
-    probability_contours: list[list[Coordinate]]
-    model: Literal["deterministic-hindcast-adapter"]
+    probability_contours: list[list[Coordinate]] = Field(default_factory=list)
+    model: str = Field(min_length=3, max_length=100)
+    is_fallback: bool = False
+    warnings: list[str] = Field(default_factory=list, max_length=10)
 
 
 class AISIntegrity(str, Enum):
@@ -95,17 +99,20 @@ class AISIntegrity(str, Enum):
 
 class VesselContext(StrictModel):
     vessel_id: str = Field(pattern=r"^[A-Z0-9_-]{3,64}$")
-    name: str = Field(min_length=1, max_length=120)
+    name: SafeText = Field(min_length=1, max_length=120)
     vessel_type: str = Field(min_length=2, max_length=60)
     mmsi: str = Field(pattern=r"^\d{9}$")
     imo: str | None = Field(default=None, pattern=r"^\d{7}$")
-    latest_position: Coordinate
+    latest_position: Coordinate | None = None
     ais_integrity: AISIntegrity
-    behavioral_anomaly_score: Score = 0
-    vessel_risk_profile: Score = 0
+    behavioral_anomaly_score: Score | None = None
+    vessel_risk_profile: Score | None = None
 
 
 class CandidateInput(VesselContext):
+    behavioral_anomaly_score: Score = 0
+    vessel_risk_profile: Score = 0
+    latest_position: Coordinate
     distance_to_origin_km: Annotated[float, Field(ge=0, le=10_000)]
     trajectory_alignment: Score
     speed_profile_alignment: Score
@@ -114,10 +121,11 @@ class CandidateInput(VesselContext):
 class Candidate(StrictModel):
     vessel: VesselContext
     distance_to_origin_km: float
-    trajectory_alignment: Score
-    speed_profile_alignment: Score
-    attribution_score: Score
-    compute_priority: Score
+    trajectory_alignment: Score | None = None
+    speed_profile_alignment: Score | None = None
+    attribution_score: Score | None = None
+    compute_priority: Score | None = None
+    source_consistency_score: Score | None = None
     rank: Annotated[int, Field(ge=1)]
 
 
@@ -176,8 +184,8 @@ class AssessmentState(str, Enum):
 class Assessment(StrictModel):
     state: AssessmentState
     top_candidate: Candidate | None
-    message: str
-    dossier: list[str]
+    message: SafeText
+    dossier: list[SafeText]
 
 
 class CandidateEvaluation(StrictModel):
@@ -187,6 +195,39 @@ class CandidateEvaluation(StrictModel):
 
 class AssessmentRequest(StrictModel):
     candidates: list[CandidateEvaluation] = Field(min_length=1, max_length=100)
+
+
+class DashboardIncident(StrictModel):
+    incident_id: str
+    title: SafeText
+    aoi: list[Coordinate]
+    detected_at: datetime
+
+
+class DashboardDetection(StrictModel):
+    id: UUID | None = None
+    scene_id: str
+    satellite: str
+    acquired_at: datetime
+    centroid: Coordinate
+    area_km2: float
+    oil_confidence: Score
+    classification: str
+    confidence_tier: Literal["high", "medium", "low"]
+    pipeline_status: Literal["proceed", "validate", "stopped"]
+
+
+class DashboardSimulation(StrictModel):
+    id: str
+    candidate_id: str
+    source_consistency_score: Score
+    components: ConsistencyComponents
+
+
+class DashboardAssessment(StrictModel):
+    state: AssessmentState
+    message: SafeText
+    dossier: list[SafeText]
 
 
 class EvidenceKind(str, Enum):
@@ -200,7 +241,7 @@ class EvidenceEventCreate(StrictModel):
     incident_id: str
     occurred_at: datetime
     kind: EvidenceKind
-    description: str = Field(min_length=3, max_length=500)
+    description: SafeText = Field(min_length=3, max_length=500)
     source_ref: str = Field(min_length=3, max_length=200)
 
 
@@ -218,13 +259,26 @@ class MessageRole(str, Enum):
 class MessageCreate(StrictModel):
     incident_id: str
     role: MessageRole
-    body: str = Field(min_length=1, max_length=4_000)
+    body: SafeText = Field(min_length=1, max_length=4_000)
     correlation_id: UUID | None = None
 
 
 class Message(MessageCreate):
     id: UUID
     created_at: datetime
+
+
+class DashboardSnapshot(StrictModel):
+    """The single read contract consumed by the dynamic analyst dashboard."""
+
+    incident: DashboardIncident
+    detection: DashboardDetection | None
+    hindcast: OriginEstimate | None
+    ranking: CandidateRanking | None
+    simulations: list[DashboardSimulation]
+    assessment: DashboardAssessment | None
+    evidence_events: list[EvidenceEvent]
+    updated_at: datetime
 
 
 class ApiEnvelope(StrictModel):

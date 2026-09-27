@@ -1,4 +1,6 @@
 .venv/
+.cache/
+.cache/
 __pycache__/
 *.py[cod]
 spill-forensics.db

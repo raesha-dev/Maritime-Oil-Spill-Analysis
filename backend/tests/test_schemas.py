@@ -123,17 +123,18 @@ def test_simulation_frame_schema() -> None:
 
 
 def test_run_request_schema() -> None:
-    """RunRequest must have incident_id, mmsi, release_time, and environment."""
+    """RunRequest requires a candidate MMSI and timezone-aware release time."""
     request = RunRequest(
-        incident_id="SIH26143-2025-001",
         mmsi="123456789",
         release_time="2025-09-08T16:00:00Z",
         environment="cmes-era5-v1",
     )
-    assert request.incident_id == "SIH26143-2025-001"
     assert request.mmsi == "123456789"
-    assert request.release_time == "2025-09-08T16:00:00Z"
+    assert request.release_time == datetime.fromisoformat("2025-09-08T16:00:00+00:00")
     assert request.environment == "cmes-era5-v1"
+
+    with pytest.raises(ValueError):
+        RunRequest(mmsi="123456789", release_time="2025-09-08T16:00:00")
 
 
 def test_run_accepted_schema() -> None:

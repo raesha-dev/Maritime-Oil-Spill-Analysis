@@ -35,6 +35,10 @@ BEHAVIORAL_AIS_GAP_TIMING = SafeText(
     "Raises the possibility of intentional signal suppression; it does not by itself "
     "establish one."
 )
+BEHAVIORAL_ARTIFACT_FLAG = SafeText(
+    "The AIS artifact records a {kind} flag: {detail}. "
+    "This is contextual information, not proof of a release."
+)
 
 # Risk context
 RISK_CONTEXT = SafeText(
@@ -56,4 +60,7 @@ VERDICT_AMBIGUOUS = SafeText(
 NULL_STATE = SafeText(
     "No sufficiently consistent vessel identified. Origin estimate may be "
     "unreliable — recommend re-examining detection and hindcast inputs."
+)
+NO_COMPLETED_COMPARISON = SafeText(
+    "No completed comparison is available. No vessel can be assessed from the current artifacts."
 )

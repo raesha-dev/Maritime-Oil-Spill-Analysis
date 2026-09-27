@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
+
+T = TypeVar("T")
 
 
 class EvidenceTag(str, Enum):
@@ -32,3 +34,15 @@ class Provenance(BaseModel):
     model_run_id: str | None = None  # "OD-ENS-0914-07"
     assumptions: list[str] = Field(default_factory=list)
     degraded_inputs: list[str] = Field(default_factory=list)
+
+
+class Envelope(BaseModel, Generic[T]):
+    data: T
+    provenance: Provenance
+
+
+class SystemStatus(BaseModel):
+    service: Literal["spill-forensics-api"]
+    version: str
+    demo_mode: bool
+    scenario: Literal["clean", "null_state"]
