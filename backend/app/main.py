@@ -1,4 +1,5 @@
 from __future__ import annotations
+from fastapi.responses import FileResponse
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -39,10 +40,14 @@ from .services import (
     source_consistency_score,
 )
 from .storage import Store
+from .schemas.incident import ArtifactIncident
+from .schemas.detection import ArtifactDetection
+from .services.artifacts import Artifacts
 
 VERSION = "0.1.0"
 store = Store(settings.database_path)
 drift_engine = DeterministicDriftAdapter()
+artifacts = Artifacts(settings.data_dir)
 
 
 @asynccontextmanager
@@ -110,10 +115,39 @@ def create_incident(body: IncidentCreate) -> Incident:
     return incident
 
 
-@app.get("/api/v1/incidents/{incident_id}", response_model=Incident)
-def get_incident(incident_id: str) -> Incident:
-    return incident_or_404(incident_id)
+@app.get("/api/v1/incidents/{incident_id}", response_model=ArtifactIncident)
+def get_incident(incident_id: str) -> ArtifactIncident:
+    return artifacts.load_incident(incident_id)
 
+@app.get("/api/v1/incidents/{incident_id}/detection", response_model=ArtifactDetection)
+def get_detection(incident_id: str) -> ArtifactDetection:
+    return artifacts.load_detection(incident_id)
+
+@app.get("/api/v1/incidents/{incident_id}/hindcast")
+def get_hindcast(incident_id: str):
+    return artifacts.load_hindcast(incident_id)
+
+@app.get("/api/v1/incidents/{incident_id}/candidates")
+def get_candidates(incident_id: str):
+    return artifacts.load_candidates(incident_id)
+
+@app.get("/api/v1/incidents/{incident_id}/slick")
+def get_slick(incident_id: str):
+    return artifacts.load_geojson(incident_id, "slick_observed")
+
+@app.get("/api/v1/incidents/{incident_id}/hindcast-field")
+def get_hindcast_field(incident_id: str):
+    return artifacts.load_geojson(incident_id, "hindcast_field")
+
+@app.get("/api/v1/incidents/{incident_id}/slick-preview")
+def get_slick_preview(incident_id: str):
+    path = artifacts.get_asset_path(incident_id, "slick_preview.png")
+    return FileResponse(path, media_type="image/png")
+
+@app.get("/api/v1/incidents/{incident_id}/hindcast-field-preview")
+def get_hindcast_field_preview(incident_id: str):
+    path = artifacts.get_asset_path(incident_id, "hindcast_field.png")
+    return FileResponse(path, media_type="image/png")
 
 @app.post("/api/v1/incidents/{incident_id}/detections", response_model=Detection, status_code=status.HTTP_201_CREATED)
 def create_detection(incident_id: str, body: DetectionCreate) -> Detection:
