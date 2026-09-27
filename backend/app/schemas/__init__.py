@@ -1,6 +1,6 @@
 """Schema definitions for the SpillTrack API."""
 
-from .common import EvidenceTag, Provenance, Confidence
+from .common import EvidenceTag, Provenance, Confidence, Envelope, SystemStatus
 from .vessel import VesselCandidate, AISIntegrity, VesselRiskProfile, BehavioralFlag
 from .simulation import (
     ConsistencyScore,
@@ -9,6 +9,7 @@ from .simulation import (
     RunStatus,
     RunRequest,
     RunAccepted,
+    RunStatusResponse,
 )
 from .evidence import Dossier, DossierLine, AttributionResult, AttributionOutcome
 
@@ -17,6 +18,8 @@ __all__ = [
     "EvidenceTag",
     "Provenance",
     "Confidence",
+    "Envelope",
+    "SystemStatus",
     # Vessel
     "VesselCandidate",
     "AISIntegrity",
@@ -29,6 +32,7 @@ __all__ = [
     "RunStatus",
     "RunRequest",
     "RunAccepted",
+    "RunStatusResponse",
     # Evidence
     "Dossier",
     "DossierLine",

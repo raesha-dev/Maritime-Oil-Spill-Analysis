@@ -40,3 +40,11 @@ class SafeText(str):
     def __new__(cls, value: str) -> "SafeText":
         assert_safe(value)
         return super().__new__(cls, value)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source: type, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls, core_schema.str_schema()
+        )

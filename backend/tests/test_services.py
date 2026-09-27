@@ -1,4 +1,16 @@
-from app.config import Settings
+import asyncio
+
+import pytest
+from pathlib import Path
+
+from app.cache.store import RunCache
+from app.config import Settings, project_root
+from app.jobs.registry import RunRegistry, RunState
+from app.schemas.evidence import AttributionOutcome
+from app.schemas.incident import CandidateArtifactSet
+from app.schemas.simulation import ArtifactRun
+from app.services.artifacts import Artifacts
+from app.services.attribution import build_fixture_attribution
 from app.models import CandidateEvaluation, CandidateInput, ConsistencyComponents
 from app.services import assess, rank_candidates, source_consistency_score
 
@@ -34,3 +46,84 @@ def test_low_pool_returns_explicit_null_result() -> None:
     result = assess([CandidateEvaluation(candidate=ranking.candidates[0], source_consistency_score=0.2)], Settings(source_score_threshold=0.95))
     assert result.state == "no_sufficiently_consistent_vessel"
     assert "NO SUFFICIENTLY CONSISTENT VESSEL IDENTIFIED" in result.message
+
+
+def test_run_registry_publishes_status_and_cached_result() -> None:
+    async def exercise_registry() -> None:
+        registry = RunRegistry()
+        run = registry.create()
+        updates: asyncio.Queue[dict] = asyncio.Queue()
+        run.subscribers.append(updates)
+
+        await registry.publish(
+            run,
+            state=RunState.RUNNING,
+            progress=0.5,
+            message="Loaded stored frame",
+            result={"frame_count": 2},
+        )
+
+        update = await updates.get()
+        assert update["run_id"] == run.run_id
+        assert update["state"] == RunState.RUNNING
+        assert update["progress"] == 0.5
+        assert update["cached"] is False
+        assert update["result"] == {"frame_count": 2}
+
+    asyncio.run(exercise_registry())
+
+
+def test_run_cache_round_trip_and_safe_key_handling(tmp_path) -> None:
+    cache = RunCache(tmp_path)
+    key = cache.key(
+        "SIH26143-2025-001",
+        "563214000",
+        "2025-09-08T16:00:00+00:00",
+        "cmes-era5-v1",
+    )
+    payload = {"run_id": "OD-ENS-001", "frames": []}
+
+    assert len(key) == 64
+    assert cache.key("another-incident", "563214000", "2025-09-08T16:00:00+00:00", "cmes-era5-v1") != key
+    cache.put(key, payload)
+    assert cache.get(key) == payload
+    assert cache.get("../outside") is None
+    with pytest.raises(ValueError):
+        cache.put("../outside", payload)
+
+    (tmp_path / f"{key}.json").write_text("not-json", encoding="utf-8")
+    assert cache.get(key) is None
+
+
+def test_fixture_attribution_uses_only_stored_candidate_run() -> None:
+    artifacts = Artifacts(project_root / "data")
+    candidates = CandidateArtifactSet.model_validate(
+        artifacts.load_candidates("SIH26143-2025-001")
+    )
+    run = ArtifactRun.model_validate(
+        artifacts.load_run("SIH26143-2025-001", "OD-ENS-001")
+    )
+
+    result = build_fixture_attribution(candidates, run, Settings())
+
+    assert result.attribution.outcome is AttributionOutcome.SUPPORTS_INVESTIGATION
+    assert result.attribution.top is not None
+    assert [candidate.mmsi for candidate in result.attribution.top] == ["563214000"]
+    assert result.attribution.top[0].consistency_score == 0.82
+    assert result.attribution.gap == 0.08
+    assert result.dossier is not None
+    assert any(line.tag == "RISK_CONTEXT" for line in result.dossier.lines)
+    assert any(line.tag == "PHYSICS" for line in result.dossier.lines)
+
+
+def test_fixture_attribution_returns_null_without_a_completed_run() -> None:
+    artifacts = Artifacts(project_root / "data")
+    candidates = CandidateArtifactSet.model_validate(
+        artifacts.load_candidates("SIH26143-2025-001")
+    )
+
+    result = build_fixture_attribution(candidates, None, Settings())
+
+    assert result.attribution.outcome is AttributionOutcome.NULL_STATE
+    assert result.attribution.top is None
+    assert result.dossier is None

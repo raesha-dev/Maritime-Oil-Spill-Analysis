@@ -24,6 +24,7 @@ const candidate = (
   speed_profile_alignment: score,
   attribution_score: score,
   compute_priority: score,
+  source_consistency_score: null,
   rank,
 });
 

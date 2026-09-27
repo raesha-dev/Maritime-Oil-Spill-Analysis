@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from ..vocabulary.guard import SafeText
+
 
 class AISIntegrity(str, Enum):
     CONSISTENT = "CONSISTENT"
@@ -26,7 +28,7 @@ class VesselRiskProfile(BaseModel):
 
 class BehavioralFlag(BaseModel):
     kind: Literal["SPEED_DROP", "LOITERING", "ROUTE_DEVIATION", "AIS_GAP_TIMING"]
-    detail: str
+    detail: SafeText
     at: datetime  # rendered via templates only
 
 
@@ -34,7 +36,7 @@ class VesselCandidate(BaseModel):
     rank: int
     mmsi: str
     imo: str | None = None
-    name: str
+    name: SafeText
     vessel_type: str
     proximity_km: float
     ais_integrity: AISIntegrity

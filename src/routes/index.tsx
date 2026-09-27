@@ -673,7 +673,7 @@ function Workstation() {
                         <small>{c.vessel.vessel_type}</small>
                       </span>
                       <span>{c.distance_to_origin_km.toFixed(0)} km</span>
-                      <strong>{c.attribution_score.toFixed(2)}</strong>
+                      <strong>{c.attribution_score?.toFixed(2) ?? "-"}</strong>
                       <em className={integrityTone(c.vessel.ais_integrity)}>
                         {integrityLabel(c.vessel.ais_integrity)}
                       </em>
@@ -778,7 +778,7 @@ function Workstation() {
                   <dt>PROXIMITY</dt>
                   <dd>{candidate.distance_to_origin_km.toFixed(1)} km</dd>
                   <dt>PRIORITY</dt>
-                  <dd>{candidate.compute_priority.toFixed(2)}</dd>
+                  <dd>{candidate.compute_priority?.toFixed(2) ?? "-"}</dd>
                 </dl>
               </div>
               <button className="primary-action">VIEW AIS TRACK</button>

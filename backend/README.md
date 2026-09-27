@@ -13,7 +13,7 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-Set `SPILL_API_DATABASE_PATH` to an absolute path when launching the service from another directory. The default database is `backend/spill-forensics.db`.
+Relative `SPILL_API_DATABASE_PATH` values resolve from `backend/`; relative `SPILL_API_DATA_DIR` values resolve from the repository root. The defaults are `backend/spill-forensics.db` and `data/`. The JSON cache defaults to the ignored `backend/.cache/` directory.
 
 ## Core contracts
 
@@ -27,16 +27,19 @@ Set `SPILL_API_DATABASE_PATH` to an absolute path when launching the service fro
 | Store/reuse a counterfactual run | `POST /api/v1/simulations` |
 | Return forensic-safe assessment | `POST /api/v1/incidents/{incident_id}/assessment` |
 | Record evidence events | `POST/GET /api/v1/.../evidence-events` |
+| Read incident artifacts and map layers | `GET /api/v1/incidents/{incident_id}`, `/detection`, `/hindcast`, `/candidates`, `/layers`, `/ais-tracks` |
+| Start fixture-backed counterfactual run | `POST /api/v1/incidents/{incident_id}/counterfactual`; poll `/api/v1/runs/{run_id}` or stream `/events` |
+| Export incident report | `GET /api/v1/incidents/{incident_id}/report/json` or `/report/pdf`; optional `run_id` selects a stored run |
 | Send/list messages | `POST/GET /api/v1/.../messages` |
 | Live message echo | `WS /api/v1/incidents/{incident_id}/messages/live` |
 
 ## Model integration boundary
 
-`app/services.py` contains `DriftEngine` and `DeterministicDriftAdapter`. Replace that adapter with an OpenDrift or AI-backed implementation while preserving its typed request and response models. The current adapter deliberately gives repeatable development results; it must not be represented as a scientific drift prediction.
+`app/services/` is the active service package. `DeterministicDriftAdapter` remains a labelled development fallback and must not be represented as a scientific drift prediction. Artifact-backed GET, counterfactual, attribution, and report paths read the validated fixture files under `data/incidents/`; the API does not load external trained weights.
 
-The source-consistency score is strictly derived from spatial, centroid, shape, and area-curve inputs. The final assessment endpoint accepts only tested candidates and applies its threshold/gap logic to that source score. Vessel Risk Profile and AIS Behavioral Anomaly are included only in compute priority, never in the physics score or final assessment.
+The source-consistency score is strictly derived from spatial, centroid, shape, and area-curve inputs. The artifact-backed assessment uses only a stored run's score and gap; candidates without a matching run remain unscored. Vessel Risk Profile and AIS Behavioral Anomaly are context/priority inputs only and never enter the stored source-consistency score.
 
-Every successful pipeline endpoint writes its latest result to the incident's dashboard snapshot. This gives the frontend one stable read contract while provider adapters evolve. `DeterministicDriftAdapter` is deliberately a demo fallback; a real OpenDrift/AI provider replaces the adapter while retaining these same input/output models. Hindcast responses explicitly carry `is_fallback` and `warnings`; the dashboard displays **MODEL FALLBACK** rather than treating that output as live scientific analysis.
+The database-backed workflow and artifact-backed fixture workflow coexist: create endpoints persist analyst/API submissions in SQLite, while fixture GET and report paths read precomputed artifacts. Hindcast responses carry `is_fallback` and `warnings`; deterministic outputs must not be treated as scientific analysis. The dashboard currently reads the SQLite snapshot route; it does not yet request the artifact route family or run SSE.
 
 ## Frontend connection
 

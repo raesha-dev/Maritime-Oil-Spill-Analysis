@@ -52,6 +52,10 @@ class DeterministicDriftAdapter:
             release_window_end=detection.acquired_at - timedelta(hours=max(1, hours - 4)),
             probability_contours=[contour],
             model="deterministic-hindcast-adapter",
+            is_fallback=True,
+            warnings=[
+                "Deterministic development fallback: this result is not an OpenDrift or scientific forecast."
+            ],
         )
 
     @staticmethod
@@ -101,6 +105,11 @@ def source_consistency_score(components: ConsistencyComponents) -> float:
         + 0.20 * components.area_curve_dtw,
         4,
     )
+
+
+def run_counterfactual_simulation(request: SimulationRequest) -> ConsistencyComponents:
+    """Return caller-supplied comparison values for the development-only API path."""
+    return request.components
 
 
 def simulation_cache_key(request: SimulationRequest) -> str:
