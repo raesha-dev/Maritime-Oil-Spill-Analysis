@@ -1,0 +1,17 @@
+{
+  "scene_id": "S1A_IW_GRDH_20250909",
+  "satellite": "Sentinel-1",
+  "acquired_at": "2025-09-09T08:17:00Z",
+  "centroid": [92.861, 12.374],
+  "area_km2": 12.4,
+  "oil_confidence": 0.91,
+  "classification": "oil",
+  "confidence_tier": "high",
+  "pipeline_status": "proceed",
+  "classification_breakdown": {
+    "oil": 0.91,
+    "algae": 0.04,
+    "low_wind": 0.03,
+    "other": 0.02
+  }
+}

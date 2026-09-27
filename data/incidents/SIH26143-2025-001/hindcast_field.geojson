@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "origin_field",
+        "level": 0.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [92.54, 12.31],
+            [92.545, 12.305],
+            [92.555, 12.305],
+            [92.56, 12.31],
+            [92.555, 12.315],
+            [92.545, 12.315],
+            [92.54, 12.31]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "origin_field",
+        "level": 0.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [92.53, 12.3],
+            [92.57, 12.3],
+            [92.57, 12.32],
+            [92.53, 12.32],
+            [92.53, 12.3]
+          ]
+        ]
+      }
+    }
+  ]
+}

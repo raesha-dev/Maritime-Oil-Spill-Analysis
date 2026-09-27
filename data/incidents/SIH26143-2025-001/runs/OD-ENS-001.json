@@ -1,0 +1,31 @@
+{
+  "run_id": "OD-ENS-001",
+  "candidate_id": "OCEAN_PRIDE",
+  "mmsi": "563214000",
+  "release_time": "2025-09-08T16:00:00Z",
+  "environment": "cmes-era5-v1",
+  "source_consistency_score": 0.82,
+  "components": {
+    "spatial_iou": {
+      "value": 0.89,
+      "uncertainty": 0.04
+    },
+    "centroid_match": {
+      "value": 0.84,
+      "uncertainty": 0.05
+    },
+    "area_curve_dtw": {
+      "value": 0.78,
+      "uncertainty": 0.06
+    },
+    "shape_match": {
+      "value": 0.72,
+      "uncertainty": 0.07
+    }
+  },
+  "confidence": "HIGH",
+  "gap_to_next_best": 0.08,
+  "generated_at": "2025-09-09T08:35:00Z",
+  "model_run_id": "OD-ENS-0914-07",
+  "cached": false
+}
