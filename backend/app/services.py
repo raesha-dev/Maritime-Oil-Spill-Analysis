@@ -17,6 +17,7 @@ from .models import (
     HindcastRequest,
     OriginEstimate,
     CandidateEvaluation,
+    SimulationFrame,
     SimulationRequest,
 )
 
@@ -70,6 +71,50 @@ class DeterministicDriftAdapter:
         ]
 
 
+class CounterfactualSimulationProvider:
+    """Deterministic provider boundary for candidate-specific counterfactual runs."""
+
+    name = "deterministic-counterfactual-provider"
+
+    def simulate(self, request: SimulationRequest) -> list[SimulationFrame]:
+        longitude, latitude = request.candidate.vessel.latest_position
+        return [
+            SimulationFrame(
+                hour=hour,
+                geojson={
+                    "type": "FeatureCollection",
+                    "features": [{
+                        "type": "Feature",
+                        "properties": {
+                            "candidate_id": request.candidate.vessel.vessel_id,
+                            "hour": hour,
+                            "source": "counterfactual",
+                        },
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [self._circle(
+                                (longitude + hour * 0.002, latitude + hour * 0.001),
+                                0.01 + hour * 0.00035,
+                            )],
+                        },
+                    }],
+                },
+            )
+            for hour in (0, 6, 12, 24)
+        ]
+
+    @staticmethod
+    def _circle(center: tuple[float, float], radius: float) -> list[list[float]]:
+        longitude, latitude = center
+        return [
+            [
+                round(longitude + radius * sin((index / 24) * 2 * pi), 6),
+                round(latitude + radius * cos((index / 24) * 2 * pi), 6),
+            ]
+            for index in range(25)
+        ]
+
+
 def rank_candidates(request: list[CandidateInput], incident_id: str, shortlist_size: int) -> CandidateRanking:
     ranked: list[Candidate] = []
     for item in request:
@@ -108,7 +153,12 @@ def source_consistency_score(components: ConsistencyComponents) -> float:
 
 
 def simulation_cache_key(request: SimulationRequest) -> str:
-    stable = "|".join((request.candidate.vessel.vessel_id, request.environment_cache_key, request.release_time.isoformat()))
+    stable = "|".join((
+        request.candidate.vessel.vessel_id,
+        request.environment_cache_key,
+        request.release_time.isoformat(),
+        request.components.model_dump_json(),
+    ))
     return sha256(stable.encode("utf-8")).hexdigest()
 
 

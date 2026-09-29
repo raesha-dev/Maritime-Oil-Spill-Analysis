@@ -28,7 +28,12 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { demoDashboard } from "@/lib/demo-dashboard";
-import { forensicsApi, type Candidate, type DashboardSnapshot } from "@/lib/forensics-api";
+import {
+  forensicsApi,
+  type Candidate,
+  type DashboardSnapshot,
+  type SimulationFrame,
+} from "@/lib/forensics-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -379,7 +384,17 @@ function Heatmap() {
   );
 }
 
-function SimFrame({ hour, index, active }: { hour: string; index: number; active: boolean }) {
+function SimFrame({
+  hour,
+  index,
+  active,
+  frame,
+}: {
+  hour: string;
+  index: number;
+  active: boolean;
+  frame?: SimulationFrame;
+}) {
   const d = [
     "M39 63C53 48 66 45 78 50C88 55 99 60 111 65C96 76 80 82 63 78C52 75 44 70 39 63Z",
     "M31 62C47 44 63 39 81 45C101 51 113 62 126 70C104 83 84 88 61 81C46 77 37 70 31 62Z",
@@ -391,7 +406,16 @@ function SimFrame({ hour, index, active }: { hour: string; index: number; active
       <div className="frame-title">T + {hour}</div>
       <svg viewBox="0 0 170 105">
         <path className="frame-current" d="M5 83C43 70 70 81 103 65S142 32 169 29" />
-        <path className="frame-sim" d={d} />
+        {frame?.geojson.features.length ? (
+          <polygon
+            className="frame-sim"
+            points={frame.geojson.features[0].geometry.coordinates[0]
+              .map(([longitude, latitude]) => `${(longitude % 1) * 170 + 85},${105 - ((latitude % 1) * 105 + 52)}`)
+              .join(" ")}
+          />
+        ) : (
+          <path className="frame-sim" d={d} />
+        )}
         <path
           className="frame-observed"
           d="M61 54C76 46 90 50 104 60C114 67 124 70 135 76C118 86 102 86 87 80C74 75 65 66 61 54Z"
@@ -413,6 +437,7 @@ function Workstation() {
   const [selected, setSelected] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [frame, setFrame] = useState(2);
+  const [simulationPending, setSimulationPending] = useState(false);
   const [layers, setLayers] = useState({
     observed: true,
     simulation: true,
@@ -485,6 +510,40 @@ function Workstation() {
   const assessment = dashboard.assessment ?? demoDashboard.assessment!;
   const isNullResult = assessment.state === "no_sufficiently_consistent_vessel";
   if (!candidate) return null;
+  const runCounterfactual = async (nextCandidate: Candidate, index: number) => {
+    setSelected(index);
+    if (!dashboard.detection || !dashboard.hindcast) return;
+    setSimulationPending(true);
+    try {
+      const existing = dashboard.simulations.find(
+        (item) => item.candidate_id === nextCandidate.vessel.vessel_id,
+      );
+      const components = existing?.components ?? {
+        spatial_iou: nextCandidate.attribution_score,
+        centroid_match: nextCandidate.trajectory_alignment,
+        shape_match: nextCandidate.speed_profile_alignment,
+        area_curve_dtw: nextCandidate.attribution_score,
+      };
+      const result = await forensicsApi.createSimulation({
+        incident_id: dashboard.incident.incident_id,
+        candidate: nextCandidate,
+        release_time: dashboard.hindcast.release_window_start,
+        environment_cache_key: "cmes-era5-v1",
+        components,
+      });
+      setDashboard((current) => ({
+        ...current,
+        simulations: [
+          result,
+          ...current.simulations.filter((item) => item.candidate_id !== result.candidate_id),
+        ],
+      }));
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Counterfactual simulation failed.");
+    } finally {
+      setSimulationPending(false);
+    }
+  };
   const events = dashboard.evidence_events.length
     ? dashboard.evidence_events
     : demoDashboard.evidence_events;
@@ -621,7 +680,7 @@ function Workstation() {
                     <button
                       key={c.vessel.vessel_id}
                       className={`candidate-row ${i === selected ? "active" : ""}`}
-                      onClick={() => setSelected(i)}
+                      onClick={() => void runCounterfactual(c, i)}
                     >
                       <span>{c.rank}</span>
                       <span>
@@ -666,10 +725,20 @@ function Workstation() {
                       setPlaying(false);
                     }}
                   >
-                    <SimFrame hour={h} index={i} active={i === frame} />
+                    <SimFrame
+                      hour={h}
+                      index={i}
+                      active={i === frame}
+                      frame={simulation.frames[i]}
+                    />
                   </button>
                 ))}
               </div>
+              <small className="simulation-run">
+                {simulationPending
+                  ? "TEST COUNTERFACTUAL · RUNNING"
+                  : `RUN ${simulation.run_id} · ${simulation.provider}`}
+              </small>
               <div className="scrubber">
                 <span>MODEL TIME</span>
                 <input

@@ -49,17 +49,7 @@ export interface DashboardSnapshot {
     uncertainty_reserve: Candidate[];
     raw_candidate_count: number;
   } | null;
-  simulations: Array<{
-    id: string;
-    candidate_id: string;
-    source_consistency_score: number;
-    components: {
-      spatial_iou: number;
-      centroid_match: number;
-      shape_match: number;
-      area_curve_dtw: number;
-    };
-  }>;
+  simulations: SimulationResult[];
   assessment: {
     state: "further_investigation" | "no_sufficiently_consistent_vessel" | "expand_candidate_pool";
     message: string;
@@ -73,6 +63,36 @@ export interface DashboardSnapshot {
     source_ref: string;
   }>;
   updated_at: string;
+}
+
+export interface SimulationFrame {
+  hour: 0 | 6 | 12 | 24;
+  geojson: {
+    type: "FeatureCollection";
+    features: Array<{
+      type: "Feature";
+      properties: Record<string, unknown>;
+      geometry: { type: "Polygon"; coordinates: number[][][] };
+    }>;
+  };
+}
+
+export interface SimulationResult {
+  id: string;
+  run_id: string;
+  incident_id: string;
+  candidate_id: string;
+  source_consistency_score: number;
+  components: {
+    spatial_iou: number;
+    centroid_match: number;
+    shape_match: number;
+    area_curve_dtw: number;
+  };
+  cache_key: string;
+  cached: boolean;
+  provider: string;
+  frames: SimulationFrame[];
 }
 
 export class ForensicsApiError extends Error {
@@ -135,7 +155,10 @@ export const forensicsApi = {
   rankCandidates: (body: JsonRecord) =>
     request<JsonRecord>("/api/v1/candidates/rank", { method: "POST", body: JSON.stringify(body) }),
   createSimulation: (body: JsonRecord) =>
-    request<JsonRecord>("/api/v1/simulations", { method: "POST", body: JSON.stringify(body) }),
+    request<SimulationResult>("/api/v1/simulations", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   createAssessment: (incidentId: string, body: JsonRecord) =>
     request<JsonRecord>(`/api/v1/incidents/${encodeURIComponent(incidentId)}/assessment`, {
       method: "POST",

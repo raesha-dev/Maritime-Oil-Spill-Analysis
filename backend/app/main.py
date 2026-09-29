@@ -31,6 +31,7 @@ from .models import (
     SimulationResult,
 )
 from .services import (
+    CounterfactualSimulationProvider,
     DeterministicDriftAdapter,
     assess,
     rank_candidates,
@@ -42,6 +43,7 @@ from .storage import Store
 VERSION = "0.1.0"
 store = Store(settings.database_path)
 drift_engine = DeterministicDriftAdapter()
+simulation_provider = CounterfactualSimulationProvider()
 
 
 @asynccontextmanager
@@ -204,10 +206,13 @@ def create_simulation(body: SimulationRequest) -> SimulationResult:
         if row:
             return SimulationResult.model_validate({**store.decode(row["payload"]), "cached": True})
         timestamp = now()
+        run_id = uuid4()
         result = SimulationResult(
-            id=uuid4(), incident_id=body.incident_id, candidate_id=body.candidate.vessel.vessel_id,
+            id=run_id, run_id=run_id, incident_id=body.incident_id,
+            candidate_id=body.candidate.vessel.vessel_id,
             source_consistency_score=source_consistency_score(body.components), components=body.components,
-            cache_key=key, cached=False, created_at=timestamp,
+            cache_key=key, cached=False, provider=simulation_provider.name,
+            frames=simulation_provider.simulate(body), created_at=timestamp,
         )
         connection.execute(
             "INSERT INTO simulations(cache_key, payload, created_at) VALUES (?, ?, ?)",

@@ -71,6 +71,8 @@ export const demoDashboard: DashboardSnapshot = {
   simulations: [
     {
       id: "demo-simulation",
+      run_id: "demo-simulation",
+      incident_id: "SIH26143-2025-001",
       candidate_id: "OCEAN_PRIDE",
       source_consistency_score: 0.82,
       components: {
@@ -79,6 +81,16 @@ export const demoDashboard: DashboardSnapshot = {
         shape_match: 0.72,
         area_curve_dtw: 0.78,
       },
+      cache_key: "demo",
+      cached: false,
+      provider: "demo-counterfactual-provider",
+      frames: [0, 6, 12, 24].map((hour) => ({
+        hour: hour as 0 | 6 | 12 | 24,
+        geojson: {
+          type: "FeatureCollection" as const,
+          features: [],
+        },
+      })),
     },
   ],
   assessment: {

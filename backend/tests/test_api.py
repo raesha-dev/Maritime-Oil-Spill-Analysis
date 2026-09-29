@@ -63,7 +63,12 @@ def test_complete_forensic_workflow(tmp_path) -> None:
         cached_simulation = client.post("/api/v1/simulations", json=simulation_body)
         assert first_simulation.status_code == 201
         assert first_simulation.json()["cached"] is False
+        assert first_simulation.json()["run_id"] == first_simulation.json()["id"]
+        assert first_simulation.json()["provider"] == "deterministic-counterfactual-provider"
+        assert [frame["hour"] for frame in first_simulation.json()["frames"]] == [0, 6, 12, 24]
+        assert first_simulation.json()["frames"][0]["geojson"]["type"] == "FeatureCollection"
         assert cached_simulation.json()["cached"] is True
+        assert cached_simulation.json()["run_id"] == first_simulation.json()["run_id"]
 
         assessment = client.post("/api/v1/incidents/SIH26143-2025-001/assessment", json={"candidates": [{
             "candidate": candidate, "source_consistency_score": first_simulation.json()["source_consistency_score"],

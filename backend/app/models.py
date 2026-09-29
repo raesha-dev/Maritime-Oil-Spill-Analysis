@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -158,14 +158,22 @@ class SimulationRequest(StrictModel):
         return value
 
 
+class SimulationFrame(StrictModel):
+    hour: Literal[0, 6, 12, 24]
+    geojson: dict[str, Any]
+
+
 class SimulationResult(StrictModel):
     id: UUID
+    run_id: UUID
     incident_id: str
     candidate_id: str
     source_consistency_score: Score
     components: ConsistencyComponents
     cache_key: str
     cached: bool
+    provider: str
+    frames: list[SimulationFrame] = Field(min_length=4, max_length=4)
     created_at: datetime
 
 
